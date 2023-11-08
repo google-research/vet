@@ -420,7 +420,8 @@ def write_samples_to_file(
       serialization is in binary format so it is more efficient.
   """
   write_start_time = datetime.datetime.now()
-  with open(output_filename, "wb") as f:
+  open_mode = "wb" if use_pickle else "w"
+  with open(output_filename, open_mode) as f:
     if use_pickle:
       pickle.dump(response_sets, f)
     else:

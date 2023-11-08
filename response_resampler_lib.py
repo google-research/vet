@@ -700,7 +700,8 @@ class ExperimentsManager:
     data_file = os.path.join(exp_dir, input_response_file)
     logging.info("Opening data file %s", data_file)
     start_time = datetime.datetime.now()
-    with open(data_file, "rb") as f:
+    open_mode = "rb" if use_pickle else "r"
+    with open(data_file, open_mode) as f:
       response_sets = pickle.load(f) if use_pickle else json.load(f)
 
     logging.info("finished loading")
