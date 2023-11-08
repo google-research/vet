@@ -31,7 +31,7 @@ def format_data(threedlist):
     A list with three levels of nesting, and the remaining levels are
     a numpy array.
   """
-  return [[[np.array(r) for r in s] for s in t] for t in threedlist]
+  return [np.asarray(t) for t in threedlist]
 
 class MachineContestMetricsTest(absltest.TestCase):
 
@@ -89,7 +89,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         self.assertAlmostEqual(result, expected, 4)
 
   def test_accuracy(self):
-    """Does accuracy yield expected results?"""
     linear_responses = format_data([
         [[0.1, 0.1], [0.2, 0.8], [0.3, 0.7]],
         [[0, 0.1], [1.0, 1.0], [0.6, 0.5]],
@@ -104,7 +103,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_accuracy_with_thresholds(self):
-    """Does accuracy yield expected results?"""
     linear_responses = format_data([
         [[0.1, 0.1], [0.2, 0.8], [0.3, 0.7]],
         [[0, 0.1], [1.0, 1.0], [0.6, 0.5]],
@@ -120,7 +118,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_auc(self):
-    """Does auc yield expected results?"""
     linear_responses = format_data([
         [[0.6, 0.6, 0.3], [0.8, 0.4, 0.8], [0.3, 0.3, 0.8]],
         [[0, 1], [0.1, 1], [0.6, 0.5]],
@@ -136,7 +133,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_cos_distance(self):
-    """Does cos similarity yield expected results?"""
     expected_linear_results = [[0.00900, 0.04297], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.cos_distance,
@@ -145,7 +141,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_emd_aggregated(self):
-    """Does emd_agg yield expected results?"""
     expected_linear_results = [[0.4, 0.4], [0.0, 0.0], [0.4, 0.4]]
 
     linear_responses = format_data([
@@ -159,8 +154,21 @@ class MachineContestMetricsTest(absltest.TestCase):
         linear_responses,
     )
 
+  def test_mean_of_emds(self):
+    expected_linear_results = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
+
+    linear_responses = format_data([
+        [[0.1, 0.1], [0.2, 0.8], [0.3, 0.7]],
+        [[0, 0.1], [1.0, 1.0], [0.5, 0.5]],
+        [[1, 0], [0, 0], [1, 1]],
+    ])
+    self.metric_helper(
+        lambda x, y, z: machine_contest_metrics.mean_of_emds(x, y, z, 5),
+        expected_linear_results,
+        linear_responses,
+    )
+
   def test_f1_score(self):
-    """Does f1 yield expected results?"""
     linear_responses = format_data([
         [[0.6, 0.6, 0.3], [0.8, 0.4, 0.8], [0.3, 0.3, 0.8]],
         [[0, 1], [0.1, 1], [0.6, 0.5]],
@@ -175,7 +183,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_inverse_mean_squared_error(self):
-    """Does inverse mean squared error yield expected results?"""
     expected_linear_results = [
         [100.0, 25],
         [math.inf, math.inf],
@@ -189,7 +196,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_precision(self):
-    """Does precision yield expected results?"""
     linear_responses = format_data([
         [[0.6, 0.6, 0.3], [0.8, 0.4, 0.8], [0.3, 0.3, 0.8]],
         [[0, 1], [0.1, 1], [0.6, 0.5]],
@@ -205,8 +211,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_wins_mae(self):
-    """Does itemwise distance wins yield expected results?"""
-
     expected_linear_results = [[2, 0], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.wins_mae,
@@ -214,27 +218,20 @@ class MachineContestMetricsTest(absltest.TestCase):
         self.linear_responses,
     )
 
-  def test_mean_average_error(self):
-    """Does itemwise distance mean yield expected results?"""
-
+  def test_mean_absolute_error(self):
     expected_linear_results = [[0.1, 0.2], [0, 0], [0, 0]]
     self.metric_helper(
-        machine_contest_metrics.mean_average_error,
+        machine_contest_metrics.mean_absolute_error,
         expected_linear_results,
         self.linear_responses,
     )
 
   def test_kld(self):
-    """Adds a test suggested by go/production_coverage.
-
-    kld is already covered implicitly below, but this exercises the case
-    where at least one of the inputs is nonpositive.
-    """
+    """Test the case where at least one of the inputs is nonpositive."""
     expected = 46.06817
     self.assertAlmostEqual(machine_contest_metrics.kld(0.2, -0.3), expected, 5)
 
   def test_kld_of_means(self):
-    """Does kld of means yield expected results?"""
     linear_responses = format_data([
         [[0.1, 0.9], [0.5, 0.8], [0.3, 0.7]],
         [[0.1, 0.9], [0.2, 0.9], [0.1, 0.9]],
@@ -247,7 +244,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_mean_kld(self):
-    """Does kld of means yield expected results?"""
     linear_responses = format_data([
         [[0.1, 0.9], [0.5, 0.8], [0.3, 0.7]],
         [[0.1, 0.9], [0.2, 0.9], [0.1, 0.9]],
@@ -261,7 +257,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_recall(self):
-    """Does recall yield expected results?"""
     linear_responses = format_data([
         [[0.6, 0.6, 0.3], [0.8, 0.4, 0.8], [0.3, 0.3, 0.8]],
         [[0, 1], [0.1, 1], [0.6, 0.5]],
@@ -277,7 +272,6 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_spearmanr(self):
-    """Does spearman ranking yield expected results?"""
     expected_linear_results = [[1, 1], [1, 1], [1, -1]]
     linear_responses = format_data([
         [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]],

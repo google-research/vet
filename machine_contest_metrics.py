@@ -22,7 +22,6 @@ compared to a third.
 """
 
 import math
-from typing import Tuple
 import numpy as np
 from scipy import spatial
 from scipy import stats
@@ -38,7 +37,7 @@ def accuracy(
     ht: float = 0.5,
     mt1: float = 0.5,
     mt2: float = 0.5,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute cosine similarities relative to human labels.
 
   The params ht, mt1 and mt2 can be specified via a config string,
@@ -71,7 +70,7 @@ def auc(
     ht: float = 0.5,
     mt1: float = 0.5,
     mt2: float = 0.5,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute ROC AUC relative to human labels.
 
   The params ht, mt1 and mt2 can be specified via a config string,
@@ -98,7 +97,7 @@ def auc(
 
 def cos_distance(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute cosine similarities relative to human labels.
 
   Args:
@@ -111,16 +110,14 @@ def cos_distance(
     human scores.
   """
   human = human.flatten()
-  machine1 = machine1.flatten()
-  machine2 = machine2.flatten()
   return (
-      spatial.distance.cosine(human, machine1),
-      spatial.distance.cosine(human, machine2),
+      spatial.distance.cosine(human, machine1.flatten()),
+      spatial.distance.cosine(human, machine2.flatten()),
   )
 
 def emd_aggregated(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray, bins: int
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Takes earth-mover's distance (EMD) relative to human labels.
 
   Distributions must first be aggregated across responses per item.
@@ -148,7 +145,7 @@ def emd_aggregated(
 
 def inverse_mean_squared_error(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute inverse mean squared error relative to human labels.
 
   Args:
@@ -172,7 +169,7 @@ def f1_score(
     ht: float = 0.5,
     mt1: float = 0.5,
     mt2: float = 0.5,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute f1-score relative to human labels.
 
   The params ht, mt1 and mt2 can be specified via a config string,
@@ -204,7 +201,7 @@ def precision(
     ht: float = 0.5,
     mt1: float = 0.5,
     mt2: float = 0.5,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute precision relative to human labels.
 
   The params ht, mt1 and mt2 can be specified via a config string,
@@ -236,7 +233,7 @@ def recall(
     ht: float = 0.5,
     mt1: float = 0.5,
     mt2: float = 0.5,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute recall relative to human labels.
 
   The params ht, mt1 and mt2 can be specified via a config string,
@@ -262,7 +259,7 @@ def recall(
 
 def wins_mae(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute number of wins relative to distance from human labels.
 
   Args:
@@ -275,16 +272,12 @@ def wins_mae(
     responses, and of the other machine and the human responses.
   """
 
-  dist_pairs = list(
-      zip(
-          (abs(x - y) for x, y in zip(human, machine1)),
-          (abs(x - y) for x, y in zip(human, machine2)),
-      )
-  )
+  machine1_results = abs(human - machine1)
+  machine2_results = abs(human - machine2)
 
   return (
-      sum(1 for a, b in dist_pairs if a < b),
-      sum(1 for a, b in dist_pairs if a > b),
+      np.sum(machine1_results < machine2_results),
+      np.sum(machine1_results > machine2_results),
   )
 
 def hist_frequency_2d(plot_scores: np.ndarray, bins: int) -> np.ndarray:
@@ -302,9 +295,9 @@ def hist_frequency_2d(plot_scores: np.ndarray, bins: int) -> np.ndarray:
   output = np.array([np.histogram(x, bins=bins)[0] for x in plot_scores])
   return output
 
-def mean_average_error(
+def mean_absolute_error(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute itemwise distance mean.
 
   Args:
@@ -316,14 +309,11 @@ def mean_average_error(
     A 2-tuple of the itemwise distance mean between one machine and the human
     responses, and of the other machine and the human responses.
   """
-  return (
-      np.mean(list(abs(x - y) for x, y in zip(human, machine1))),
-      np.mean(list(abs(x - y) for x, y in zip(human, machine2))),
-  )
+  return (np.mean(abs(human - machine1)), np.mean(abs(human - machine2)))
 
 def itemwise_emds(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[list[float], list[float]]:
+) -> tuple[list[float], list[float]]:
   """Compute itemise earth movers distance between machine and human responses.
 
   Args:
@@ -382,7 +372,7 @@ def kld(observed_mean: float, predicted_mean: float) -> float:
 
 def kld_of_means(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute Kulback-Liebler Divergence (KLD) over all items.
 
   Args:
@@ -402,7 +392,7 @@ def kld_of_means(
 
 def mean_kld(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute the mean of klds over all responses.
 
   Args:
@@ -414,17 +404,15 @@ def mean_kld(
     A pair of mean-of-kld scores, for machines 1 and 2, relative to
     human scores.
   """
-  scores1 = np.mean(
-      list((kld(np.mean(x), np.mean(y)) for x, y in zip(machine1, human)))
-  )
-  scores2 = np.mean(
-      list((kld(np.mean(x), np.mean(y)) for x, y in zip(machine2, human)))
-  )
+  kld_vfunc = np.vectorize(kld)
+  scores1 = np.mean(kld_vfunc(machine1, human))
+  scores2 = np.mean(kld_vfunc(machine2, human))
+
   return scores1, scores2
 
 def mean_of_emds(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray, bins: int
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Takes mean of earth-mover's distance (EMD) relative to human labels.
 
   Mean is over all items, EMD is across responses per item.
@@ -448,7 +436,7 @@ def mean_of_emds(
 
 def spearmanr(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
   """Compute spearman ranking correlation.
 
   Args:
@@ -465,7 +453,7 @@ def spearmanr(
       stats.spearmanr(human, machine2)[0],
   )
 
-def higher_wins(machine1: np.ndarray, machine2: np.ndarray) -> Tuple[int, int]:
+def higher_wins(machine1: np.ndarray, machine2: np.ndarray) -> tuple[int, int]:
   """Count the number of times each machine's score is greater than the other's.
 
   Used for scores over multiple trials where greater is better.
@@ -480,16 +468,11 @@ def higher_wins(machine1: np.ndarray, machine2: np.ndarray) -> Tuple[int, int]:
       The first argument is the mumber of trials machine1 won.
       The second argument is the mumber of trials machine2 won.
   """
-  machine1_wins = 0
-  machine2_wins = 0
-  for j, _ in enumerate(machine1):
-    if machine1[j] > machine2[j]:
-      machine1_wins += 1
-    elif machine2[j] > machine1[j]:
-      machine2_wins += 1
-  return machine1_wins, machine2_wins
+  machine1 = np.asarray(machine1)
+  machine2 = np.asarray(machine2)
+  return np.sum(machine1 > machine2), np.sum(machine2 > machine1)
 
-def lower_wins(machine1: np.ndarray, machine2: np.ndarray) -> Tuple[int, int]:
+def lower_wins(machine1: np.ndarray, machine2: np.ndarray) -> tuple[int, int]:
   """Count the number of times each machine's score is lesser than the other's.
 
   Used for scores over multiple trials where lesser is better.
@@ -537,7 +520,7 @@ def calculate_p_value(s_null: np.ndarray, s_alt: np.ndarray) -> float:
 
 def mean_and_confidence_bounds(
     scores: np.ndarray,
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
   """Compute mean and (empirical) confidence bounds for a list of numbers.
 
   Args:

@@ -27,7 +27,7 @@ uses to generate the samples.
 
 Example usage:
 
-python parameterized_sample --path_name=/data_dir/path --distortion=.02
+python parameterized_sample --exp_dir=/data_dir/path --distortion=.02
 """
 import datetime
 import os
@@ -43,8 +43,9 @@ import parameterized_sample_lib as psample
 _DISTORTION = flags.DEFINE_float(
     "distortion", 0.3, "Amount of distortion between machines."
 )
-_PATH_NAME = flags.DEFINE_string(
-    "path_name", "/cns/is-d/home/homanc/ptest/", "The data directory path."
+_EXP_DIR = flags.DEFINE_string(
+    "exp_dir", "/tmp/ptest/",
+    "The file path where the experiment input and output data are located."
 )
 
 _GENERATOR = flags.DEFINE_enum_class(
@@ -96,7 +97,7 @@ def main(argv: Sequence[str]) -> None:
 
   file_extension = "pkl" if _USE_PICKLE.value else "json"
   output_filename = os.path.join(
-      _PATH_NAME.value,
+      _EXP_DIR.value,
       f"responses_simulated_distr_dist={_DISTORTION.value}_gen_N="
       f"{_N_ITEMS.value}_K={_K_RESPONSES.value}"
       f"_n_samples={_NUM_TRIALS.value}.{file_extension}",

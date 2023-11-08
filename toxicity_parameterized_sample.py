@@ -27,7 +27,7 @@ uses to generate the samples.
 
 Example usage:
 
-python toxicity_parameterized_sample --path_name=/data_dir/path --distortion=.02
+python toxicity_parameterized_sample --exp_dir=/data_dir/path --distortion=.02
 """
 import datetime
 import os
@@ -44,8 +44,8 @@ import pandas as pd
 _DISTORTION = flags.DEFINE_float(
     "distortion", 0.3, "Amount of distortion between machines."
 )
-_PATH_NAME = flags.DEFINE_string(
-    "path_name", "/cns/is-d/home/homanc/ptest/", "The data directory path."
+_EXP_DIR = flags.DEFINE_string(
+    "exp_dir", "/tmp/ptest/", "The data directory path."
 )
 _INPUT = flags.DEFINE_string(
     "input", "toxicity_ratings_sample.csv", "The gold standard input file."
@@ -182,14 +182,14 @@ def main(argv: Sequence[str]) -> None:
   # generate them.
   toxicity_start_time = datetime.datetime.now()
   response_sets = generate_toxicity_data_responses(
-      os.path.join(_PATH_NAME.value, "inputs", _INPUT.value), response_sets
+      os.path.join(_EXP_DIR.value, "inputs", _INPUT.value), response_sets
   )
   elapsed_time = datetime.datetime.now() - toxicity_start_time
   logging.info("Toxicity data generation time=%f", elapsed_time.total_seconds())
 
   file_extension = "pkl" if _USE_PICKLE.value else "json"
   output_filename = os.path.join(
-      _PATH_NAME.value,
+      _EXP_DIR.value,
       f"responses_simulated_distr_dist={_DISTORTION.value}_gen_N="
       f"{_N_ITEMS.value}_K={_K_RESPONSES.value}"
       f"_n_samples={_NUM_TRIALS.value}.{file_extension}",

@@ -30,6 +30,7 @@ first generate a distribution of means and stdevs (one pair per item), then
 for each item we sample k votes from the distribution with that mean, stdev.
 """
 
+import collections
 import datetime
 import enum
 import functools
@@ -38,7 +39,7 @@ import os
 import pickle
 import random as rand
 import re
-from typing import Any, Callable, Mapping, Optional, Tuple
+from typing import Any, Callable, Mapping, Tuple
 
 from absl import logging
 import numpy as np
@@ -126,9 +127,9 @@ def noop(x: Any) -> Any:
 ##############################################
 # Shaper functions
 
-def vectorize(matrix: np.ndarray) -> np.ndarray:
+def vectorize(matrix: np.ndarray[Any, np.dtype]) -> np.ndarray[int, np.dtype]:
   """Return a flattened matrix."""
-  return np.concatenate(matrix).flat
+  return matrix.flatten()
 
 ##############################################
 # Sampler functions: for responses
@@ -232,13 +233,16 @@ def resample_items_and_responses_factory(
 class Experiment:
   """Manages a single experiment."""
 
-  def __init__(self, config_row: dict[str, Any]):
+  def __init__(self, config_row: dict[str, Any], k_responses: int):
     """Initializer for Experiment class.
 
     Args:
       config_row: a DataFrame row of parameters from the experiments
         configuration file.
+      k_responses: Number of responses per item. Must be no greater than number
+        of responses per items in the input_data dataset.
     """
+    self.k_responses = k_responses
     exp_config = self.setup_experiment(config_row)
     self.metric = exp_config[ParameterTypes.COMPARISON_METRIC.value]
     self.item_level_aggregator = exp_config[ParameterTypes.AGG_OVER_VOTES.value]
@@ -290,7 +294,7 @@ class Experiment:
       human_scores: np.ndarray,
       null_sample: Mapping[str, np.ndarray],
   ):
-    """Get the rsults of a ground truth trial.
+    """Get the results of a ground truth trial.
 
     Args:
       machine1_scores: 2D array of responses from one machine.
@@ -333,19 +337,16 @@ class Experiment:
       machine2_test: np.ndarray,
       human_test: np.ndarray,
   ):
-    """Run and return a results of a test.
+    """Run tests and add results to _sample_results.
 
     Args:
       machine1_test: 2D array of responses from one machine.
       machine2_test: 2D array of responses from another machine.
       human_test: 2D of array of responses from humans.
-
-    Returns:
-      The sample_results, with a new line of results added.
     """
 
-    machine1_wins_per_trial, machine2_wins_per_trial = zip(
-        *[
+    machine1_wins_per_trial, machine2_wins_per_trial = np.transpose(
+        [
             self.run_trial(
                 machine1_test, machine2_test, human_test, self.sampler
             )
@@ -355,20 +356,18 @@ class Experiment:
 
     # Now construct a null hypothesis and test
     null_test = np.concatenate([machine1_test, machine2_test], axis=1)
-    trials = []
-    for _ in range(self.num_trials):
-      trials.append(
-          self.run_trial(null_test, null_test, human_test, self.sampler)
-      )
-    null1_score, null2_score = zip(*trials)
-
-    alt_test_diff = np.array(machine1_wins_per_trial) - np.array(
-        machine2_wins_per_trial
+    null1_score, null2_score = np.transpose(
+        [
+            self.run_trial(null_test, null_test, human_test, self.sampler)
+            for _ in range(self.num_trials)
+        ]
     )
-    null_test_diff = np.array(null1_score) - np.array(null2_score)
+
+    alt_test_diff = machine1_wins_per_trial - machine2_wins_per_trial
+    null_test_diff = null1_score - null2_score
     if np.median(null_test_diff) > np.median(alt_test_diff):
-      alt_test_diff = [-x for x in alt_test_diff]
-      null_test_diff = [-x for x in null_test_diff]
+      alt_test_diff = -alt_test_diff
+      null_test_diff = -null_test_diff
 
     machine1_trial_wins, machine2_trial_wins = mcm.higher_wins(
         machine1_wins_per_trial, machine2_wins_per_trial
@@ -422,8 +421,8 @@ class Experiment:
     ) - np.array(self.sample_results[GroundStatTypes.M2_GT_NULL.value])
 
     if np.median(null_ground_diff) > np.median(alt_ground_diff):
-      null_ground_diff = [-x for x in null_ground_diff]
-      alt_ground_diff = [-x for x in alt_ground_diff]
+      null_ground_diff = -null_ground_diff
+      alt_ground_diff = -alt_ground_diff
 
     self.sample_results[GroundStatTypes.ALT_SCORE_DIFFS_GT.value] = (
         alt_ground_diff
@@ -519,7 +518,7 @@ class Experiment:
         replaced by functions.
     """
     metrics = {
-        "mean_average_error": mcm.mean_average_error,
+        "mean_absolute_error": mcm.mean_absolute_error,
         "wins_mae": mcm.wins_mae,
         "inverse_mean_squared_error": mcm.inverse_mean_squared_error,
         "spearmanr": mcm.spearmanr,
@@ -537,23 +536,25 @@ class Experiment:
         "noop": noop,
         "vectorize": vectorize,
     }
+
     samplers = {
-        "(all_items,sample(5))": resample_items_and_responses_factory(
-            all_items, sample_responses(5)
+        "(all_items,bootstrap_responses)": resample_items_and_responses_factory(
+            all_items, sample_responses(self.k_responses)
         ),
-        "(all_items,sample(1))": resample_items_and_responses_factory(
+        "(all_items,one_response)": resample_items_and_responses_factory(
             all_items, sample_responses(1)
         ),
-        "(all_items,sample_all)": resample_items_and_responses_factory(
+        "(all_items,all_responses)": resample_items_and_responses_factory(
             all_items, sample_all
         ),
-        "(bootstrap_items,sample(5))": resample_items_and_responses_factory(
-            bootstrap_items, sample_responses(5)
+        "(bootstrap_items,bootstrap_responses)": (
+            resample_items_and_responses_factory(
+                bootstrap_items, sample_responses(self.k_responses))
         ),
-        "(bootstrap_items,sample_all)": resample_items_and_responses_factory(
+        "(bootstrap_items,all_responses)": resample_items_and_responses_factory(
             bootstrap_items, sample_all
         ),
-        "(bootstrap_items,sample(1))": resample_items_and_responses_factory(
+        "(bootstrap_items,one_response)": resample_items_and_responses_factory(
             bootstrap_items, sample_responses(1)
         ),
         "(bootstrap_items,first_response)": (
@@ -566,28 +567,28 @@ class Experiment:
         ),
     }
     ground_samplers = {
-        "(all_items,sample(5))": resample_items_and_responses_factory(
-            all_items, sample_ground_responses(5)
+        "(all_items,bootstrap_responses)": resample_items_and_responses_factory(
+            all_items, sample_ground_responses(self.k_responses)
         ),
-        "(all_items,sample(1))": resample_items_and_responses_factory(
+        "(all_items,one_response)": resample_items_and_responses_factory(
             all_items, sample_ground_responses(1)
         ),
-        "(all_items,sample_all)": resample_items_and_responses_factory(
+        "(all_items,all_responses)": resample_items_and_responses_factory(
             all_items, noop
         ),
-        "(bootstrap_items,sample(5))": resample_items_and_responses_factory(
-            bootstrap_items, sample_ground_responses(5)
+        "(bootstrap_items,bootstrap_responses)": (
+            resample_items_and_responses_factory(
+                bootstrap_items, sample_ground_responses(self.k_responses))
         ),
-        "(bootstrap_items,sample(1))": resample_items_and_responses_factory(
+        "(bootstrap_items,one_response)": resample_items_and_responses_factory(
             bootstrap_items, sample_ground_responses(1)
         ),
-        "(bootstrap_items,sample_all)": resample_items_and_responses_factory(
+        "(bootstrap_items,all_responses)": resample_items_and_responses_factory(
             bootstrap_items, noop
         ),
         "(bootstrap_items,first_response)": (
-            resample_items_and_responses_factory(
-                bootstrap_items, first_response
-            )
+            resample_items_and_responses_factory(bootstrap_items,
+                                                 first_response)
         ),
         "(bootstrap_items,noop)": resample_items_and_responses_factory(
             bootstrap_items, noop
@@ -633,9 +634,7 @@ class Experiment:
       The results of the experiment, in terms of the score and number of wins,
       over the samples.
     """
-    self.sample_results = {}
-    for val in main_stats:
-      self.sample_results[val] = []
+    self.sample_results = collections.defaultdict(list)
 
     count = 0
     for alt_sample, null_sample in zip(alt_samples, null_samples):
@@ -664,19 +663,20 @@ class ExperimentsManager:
 
   def __init__(
       self,
-      path_name: str,
-      in_data_file: str,
+      exp_dir: str,
+      input_response_file: str,
       use_pickle: bool,
       line: int,
       config_file_name: str,
-      n_items: Optional[int] = None,
-      k_responses: Optional[int] = None,
+      n_items: int,
+      k_responses: int,
   ):
     """Initializer for ExperimentsManager class.
 
     Args:
-      path_name: The base path for the input and configuration files.
-      in_data_file: The input file of response data from the true distribution.
+      exp_dir: The base path for the input and configuration files.
+      input_response_file: The input file of response data from the true
+        distribution.
       use_pickle: If true decode the data file using pickle format.
       line: The line of the configuration file to run (to facilitate parallel
         execution), or -1 to run all of them.
@@ -686,16 +686,18 @@ class ExperimentsManager:
       k_responses: Number of responses per item. Must be no greater than number
         of responses per items in the input_data dataset.
     """
-    self.path_name = path_name
+    self.exp_dir = exp_dir
+    self.n_items = n_items
+    self.k_responses = k_responses
     if line == -1:
       self.out_file_name = (
-          f"results_N={n_items}_K={k_responses}_{in_data_file}.csv"
+          f"results_N={n_items}_K={k_responses}_{input_response_file}.csv"
       )
     else:
       self.out_file_name = (
-          f"results_N={n_items}_K={k_responses}_{in_data_file}_line={line}.csv"
+          f"results_N={n_items}_K={k_responses}_{input_response_file}_line={line}.csv"
       )
-    data_file = os.path.join(path_name, in_data_file)
+    data_file = os.path.join(exp_dir, input_response_file)
     logging.info("Opening data file %s", data_file)
     start_time = datetime.datetime.now()
     with open(data_file, "rb") as f:
@@ -716,7 +718,7 @@ class ExperimentsManager:
     conversion_time = datetime.datetime.now() - conversion_start_time
     logging.info("Data conversion time=%f", conversion_time.total_seconds())
 
-    config_file = os.path.join(path_name, "config/", config_file_name)
+    config_file = os.path.join(exp_dir, "config/", config_file_name)
     logging.info("Opening config file %s", config_file)
     with open(config_file, "r") as f:
       self.e_grid = pd.read_csv(f)
@@ -738,7 +740,7 @@ class ExperimentsManager:
       if self.line != -1 and row_idx != self.line:
         continue
 
-      experiment = Experiment(config_row)
+      experiment = Experiment(config_row, self.k_responses)
       start_time = datetime.datetime.now()
       results = experiment.run_experiment(self.alt_samples, self.null_samples)
       self.save_experiment_results(results, row_idx)
@@ -754,7 +756,7 @@ class ExperimentsManager:
     logging.info("Total compute time: %f", self.elapsed_t.total_seconds())
     # Write out the experiment results.
     with open(
-        os.path.join(self.path_name, self.out_file_name), "wb"
+        os.path.join(self.exp_dir, self.out_file_name), "wb"
     ) as f:
       self.e_grid.to_csv(f)
 

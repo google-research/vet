@@ -45,18 +45,19 @@ class ResponseResamplerLibTest(absltest.TestCase):
 
   def create_experiments(self, line: int = -1):
     # Create an experiment manager and an experiment.
+    k_responses = 5
     self.experiments_manager = resampler_lib.ExperimentsManager(
-        path_name=self.out_dir.full_path,
-        in_data_file=self.data_filename,
+        exp_dir=self.out_dir.full_path,
+        input_response_file=self.data_filename,
         use_pickle=True,
         line=line,
         config_file_name=self.config_filename,
         n_items=20,
-        k_responses=5,
+        k_responses=k_responses,
     )
 
     config_row = self.experiments_manager.e_grid.iloc[0]
-    self.experiment = resampler_lib.Experiment(config_row)
+    self.experiment = resampler_lib.Experiment(config_row, k_responses)
     self.metrc_func = self.experiment.metric
 
   def write_config_file(self, metric_spec: str) -> None:
@@ -64,7 +65,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     # A string template with metric name to be specified.
     config_lines = f"""
         ,Agg over Trials,# trials,Sampler,Shaper,Comparison(Metric),Agg_over_votes
-        1,mean,1000,"(all_items,sample(5))",noop,"{metric_spec}",mean
+        1,mean,1000,"(all_items,bootstrap_responses)",noop,"{metric_spec}",mean
       """
     with open(self.config_filename, 'w') as f:
       f.writelines(config_lines)
@@ -75,7 +76,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.create_experiments()
     self.experiments_manager.run_experiments()
     output_csv_file = os.path.join(
-        self.experiments_manager.path_name,
+        self.experiments_manager.exp_dir,
         self.experiments_manager.out_file_name,
     )
     result_df = pd.read_csv(output_csv_file)
@@ -89,7 +90,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.experiments_manager.run_experiments()
 
     output_csv_file = os.path.join(
-        self.experiments_manager.path_name,
+        self.experiments_manager.exp_dir,
         self.experiments_manager.out_file_name,
     )
     result_df = pd.read_csv(output_csv_file)
