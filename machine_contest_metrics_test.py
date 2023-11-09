@@ -296,7 +296,28 @@ class MachineContestMetricsTest(absltest.TestCase):
     results = machine_contest_metrics.lower_wins(machine1, machine2)
     self.assertTupleEqual(results, (5, 4))
 
-  # mean_and_confidence_bounds.
+  def test_calculate_p_value_balanced(self):
+    """Test the case with perfect balanced between `s_null` and `s_alt`."""
+    s_null = np.random.permutation(10)  # order doesn't matter
+    s_alt = np.repeat(4.5, 10)
+    p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
+    self.assertAlmostEqual(p_value, 0.5, places=2)
+
+  def test_calculate_p_value_imbalanced(self):
+    """Test the case where `s_alt` is no better than `s_null` for all scores."""
+    s_null = np.arange(10)
+    s_alt = np.zeros_like(s_null)
+    p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
+    self.assertAlmostEqual(p_value, 1.0, places=2)
+
+  def test_mean_confidence_bounds(self):
+    scores = np.arange(1000)
+    (lower_quantile, mean, upper_quantile) = (
+        machine_contest_metrics.mean_and_confidence_bounds(scores)
+    )
+    self.assertAlmostEqual(mean, 999.0 / 2.0, places=2)
+    self.assertEqual(lower_quantile, 25)
+    self.assertEqual(upper_quantile, 975)
 
 if __name__ == '__main__':
   absltest.main()
