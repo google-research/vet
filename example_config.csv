@@ -1,0 +1,10 @@
+Line,Agg over Trials,# trials,Sampler,Shaper,Comparison(Metric),Agg_over_votes
+1,mean,1000,"(all_items,all_responses)",noop,cos_distance,mean
+2,mean,1000,"(bootstrap_items,all_responses)",noop,mean_absolute_error,mean
+3,mean,1000,"(bootstrap_items,noop)",noop,wins_mae,mean
+4,count wins,1000,"(all_items,all_responses)",noop,inverse_mean_squared_error,mean
+5,count wins,1000,"(bootstrap_items,all_responses)",noop,spearmanr,mean
+6,count wins,1000,"(bootstrap_items,noop)",noop,emd_agg(bins=50),mean
+7,mean,100,"(all_items,all_responses)",noop,mean_of_emds(bins=5),mean
+8,mean,100,"(bootstrap_items,all_responses)",noop,"accuracy(ht=0.5,mt1=0.5,mt2=0.5)",noop
+9,mean,100,"(bootstrap_items,noop)",noop,mean_of_emds(bins=5),noop

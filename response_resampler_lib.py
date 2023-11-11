@@ -498,7 +498,9 @@ class Experiment:
       arg_list = [parse_numeric(key) for key, val in matches if not val]
       arg_dict = {key: parse_numeric(val) for key, val in matches if val}
       if arg_list:
-        raise ValueError("Only dictionary arguments are allowed.")
+        raise ValueError(
+            f"Only dictionary arguments are allowed. func_spec={func_spec}"
+        )
       return func_name, arg_list, arg_dict
     else:
       return func_spec, [], {}
