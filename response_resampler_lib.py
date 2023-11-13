@@ -692,11 +692,11 @@ class ExperimentsManager:
     self.n_items = n_items
     self.k_responses = k_responses
     if line == -1:
-      self.out_file_name = (
+      self.output_file_name = (
           f"results_N={n_items}_K={k_responses}_{input_response_file}.csv"
       )
     else:
-      self.out_file_name = (
+      self.output_file_name = (
           f"results_N={n_items}_K={k_responses}_{input_response_file}_line={line}.csv"
       )
     data_file = os.path.join(exp_dir, input_response_file)
@@ -759,7 +759,7 @@ class ExperimentsManager:
     logging.info("Total compute time: %f", self.elapsed_t.total_seconds())
     # Write out the experiment results.
     with open(
-        os.path.join(self.exp_dir, self.out_file_name), "wb"
+        os.path.join(self.exp_dir, self.output_file_name), "wb"
     ) as f:
       self.e_grid.to_csv(f)
 

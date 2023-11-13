@@ -29,7 +29,7 @@ Where:
 --exp_dir is the file path where the experiment input and output data are located.
 
 --generator is the type of random sample generator. Right now it supports 
-  either normal distribution generator (ALT_DISTR_GEN) or likert normal distribution generator (TOXICITY_DISTR_GEN).
+  either normal distribution generator (ALT_DISTR_GEN) or Likert normal distribution generator (TOXICITY_DISTR_GEN).
 
 --distortion is a floating point number controlling the amount of distribution generation error in the
 second machine sample distribution relative to the human sample distribution.
