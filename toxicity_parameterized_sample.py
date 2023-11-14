@@ -58,13 +58,13 @@ _GENERATOR = flags.DEFINE_enum_class(
     "A function that generates distributions.",
 )
 _N_ITEMS = flags.DEFINE_integer(
-    "n_items", 1000, "Number of items per response set."
+    "n_items", 1000, "Number of rows in the input response dataset."
 )
 _K_RESPONSES = flags.DEFINE_integer(
     "k_responses", 5, "Number of responses per item."
 )
 _NUM_TRIALS = flags.DEFINE_integer(
-    "num_trials", 20, "Number of trial per experiment."
+    "num_trials", 20, "Number of bootstrap resamples per experiment."
 )
 _NUM_SAMPLES = flags.DEFINE_integer(
     "num_samples", 1000, "Number of rows to sample for generator."

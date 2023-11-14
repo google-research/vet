@@ -14,7 +14,6 @@ limitations under the License.
 
 Tests machine_contest_metrics.
 """
-import math
 from typing import Any, Callable
 
 from absl.testing import absltest
@@ -182,15 +181,15 @@ class MachineContestMetricsTest(absltest.TestCase):
         {'ht': 0.5, 'mt1': 0.5, 'mt2': 0.5},
     )
 
-  def test_inverse_mean_squared_error(self):
+  def test_root_mean_squared_error(self):
     expected_linear_results = [
-        [100.0, 25],
-        [math.inf, math.inf],
-        [math.inf, math.inf],
+        [0.1, 0.2],
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     self.metric_helper(
-        machine_contest_metrics.inverse_mean_squared_error,
+        machine_contest_metrics.root_mean_squared_error,
         expected_linear_results,
         self.linear_responses,
     )
@@ -222,6 +221,14 @@ class MachineContestMetricsTest(absltest.TestCase):
     expected_linear_results = [[0.1, 0.2], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.mean_absolute_error,
+        expected_linear_results,
+        self.linear_responses,
+    )
+
+  def test_max_absolute_error(self):
+    expected_linear_results = [[0.1, 0.2], [0, 0], [0, 0]]
+    self.metric_helper(
+        machine_contest_metrics.max_absolute_error,
         expected_linear_results,
         self.linear_responses,
     )

@@ -22,12 +22,12 @@ with 1-2 shaping params - each item has a different distribution. This is meant
 to capture, e.g., that some items have high agreement and some have high
 disagreement. To generate the random responses, we first randomly generate the
 shaping params for each item (N x 2 shape params), and then draw (k) random
-votes from that distribution.
+responses from that distribution.
 
-For example, we could say that the individual votes per item are normally
+For example, we could say that the individual responses per item are normally
 distributed, and therefore each item has a mean and standard deviation. We
 first generate a distribution of means and stdevs (one pair per item), then
-for each item we sample k votes from the distribution with that mean, stdev.
+for each item we sample k responses from the distribution with that mean, stdev.
 """
 
 import collections
@@ -56,28 +56,28 @@ class TypesEnumBase(enum.Enum):
 class ParameterTypes(TypesEnumBase):
   """Lists of parameters and stats we keep track of in experiments."""
 
-  AGG_OVER_TRIALS = "Agg over Trials"
-  NUM_TRIALS = "# trials"
-  SAMPLER = "Sampler"
-  GT_SAMPLER = "GT Sampler"
-  SHAPER = "Shaper"
-  COMPARISON_METRIC = "Comparison(Metric)"
-  AGG_OVER_VOTES = "Agg_over_votes"
+  AGG_OVER_TRIALS = "agg_over_trials"
+  NUM_TRIALS = "num_trials"
+  SAMPLER = "sampler"
+  GT_SAMPLER = "GT_sampler"
+  SHAPER = "shaper"
+  COMPARISON_METRIC = "comparison_metric"
+  AGG_OVER_RESPONSES = "agg_over_responses"
 
 class TestStatTypes(TypesEnumBase):
   """Types for test stats."""
 
-  M1_SCORE = "M1 Score"
-  M1_SCORE_STD = "M1 Score Std"
-  M2_SCORE = "M2 Score"
-  M2_SCORE_STD = "M2 Score Std"
-  M1_TRIAL_WINS = "M1 Trial Wins"
-  M2_TRIAL_WINS = "M2 Trial Wins"
-  EST_P_SCORE = "Est P-score"
-  ALT_SCORE_DIFFS_TEST_MEAN = "Alt Score Diffs Test Mean"
-  NULL_SCORE_DIFFS_TEST_MEAN = "Null Score Diffs Test Mean"
-  ALT_SCORE_DIFFS_TEST_STD = "Alt Score Diffs Test Std"
-  NULL_SCORE_DIFFS_TEST_STD = "Null Score Diffs Test Std"
+  M1_SCORE = "M1_Score"
+  M1_SCORE_STD = "M1_Score_Std"
+  M2_SCORE = "M2_Score"
+  M2_SCORE_STD = "M2_Score_Std"
+  M1_TRIAL_WINS = "M1_Trial_Wins"
+  M2_TRIAL_WINS = "M2_Trial_Wins"
+  EST_P_SCORE = "Est_Pvalue"
+  ALT_SCORE_DIFFS_TEST_MEAN = "Alt_Score_Diffs_Test_Mean"
+  NULL_SCORE_DIFFS_TEST_MEAN = "Null_Score_Diffs_Test_Mean"
+  ALT_SCORE_DIFFS_TEST_STD = "Alt_Score_Diffs_Test_Std"
+  NULL_SCORE_DIFFS_TEST_STD = "Null_Score_Diffs_Test_Std"
 
 class GroundStatTypes(TypesEnumBase):
   """Types for ground stats."""
@@ -102,11 +102,11 @@ class GroundStatTypes(TypesEnumBase):
 class AggStatTypes(TypesEnumBase):
   """Types for aggregated stats."""
 
-  GT_P_SCORE = "GT P-score"
-  GT_M1_ALT_WINS = "GT M1 Alt Wins"
-  GT_M2_ALT_WINS = "GT M2 Alt Wins"
-  GT_M1_NULL_WINS = "GT M1 Null Wins"
-  GT_M2_NULL_WINS = "GT M2 Null Wins"
+  GT_P_SCORE = "GT_Pvalue"
+  GT_M1_ALT_WINS = "GT_M1_Alt_Wins"
+  GT_M2_ALT_WINS = "GT_M2_Alt_Wins"
+  GT_M1_NULL_WINS = "GT_M1_Null_Wins"
+  GT_M2_NULL_WINS = "GT_M2_Null_Wins"
 
 main_stats = TestStatTypes.value_list() + GroundStatTypes.basic_stat_values()
 
@@ -245,7 +245,8 @@ class Experiment:
     self.k_responses = k_responses
     exp_config = self.setup_experiment(config_row)
     self.metric = exp_config[ParameterTypes.COMPARISON_METRIC.value]
-    self.item_level_aggregator = exp_config[ParameterTypes.AGG_OVER_VOTES.value]
+    self.item_level_aggregator = exp_config[
+        ParameterTypes.AGG_OVER_RESPONSES.value]
     self.num_trials = exp_config[ParameterTypes.NUM_TRIALS.value]
     self.sampler = exp_config[ParameterTypes.SAMPLER.value]
     self.ground_sampler = exp_config[ParameterTypes.GT_SAMPLER.value]
@@ -521,8 +522,9 @@ class Experiment:
     """
     metrics = {
         "mean_absolute_error": mcm.mean_absolute_error,
+        "root_mean_squared_error": mcm.root_mean_squared_error,
+        "max_absolute_error": mcm.max_absolute_error,
         "wins_mae": mcm.wins_mae,
-        "inverse_mean_squared_error": mcm.inverse_mean_squared_error,
         "spearmanr": mcm.spearmanr,
         "emd_agg": mcm.emd_aggregated,
         "mean_of_emds": mcm.mean_of_emds,
@@ -597,7 +599,7 @@ class Experiment:
         ),
     }
     parameters_dict = {
-        ParameterTypes.AGG_OVER_VOTES.value: response_aggregators,
+        ParameterTypes.AGG_OVER_RESPONSES.value: response_aggregators,
         ParameterTypes.SHAPER.value: shapers,
         ParameterTypes.SAMPLER.value: samplers,
         ParameterTypes.GT_SAMPLER.value: ground_samplers,

@@ -143,10 +143,10 @@ def emd_aggregated(
       stats.wasserstein_distance(freq_machine2, freq_human),
   )
 
-def inverse_mean_squared_error(
+def root_mean_squared_error(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
 ) -> tuple[float, float]:
-  """Compute inverse mean squared error relative to human labels.
+  """Compute (L2) root mean squared error relative to human labels.
 
   Args:
     human: An array of human responses.
@@ -154,12 +154,12 @@ def inverse_mean_squared_error(
     machine2: An array of responses from another machine.
 
   Returns:
-    A 2-tuple of the inverse mean squared error between one machine and the
+    A 2-tuple of the root mean squared error between one machine and the
     human responses, and of the other machine at the human responses.
   """
   return (
-      1 / metrics.mean_squared_error(human, machine1),
-      1 / metrics.mean_squared_error(human, machine2),
+      metrics.mean_squared_error(human, machine1, squared=False),
+      metrics.mean_squared_error(human, machine2, squared=False),
   )
 
 def f1_score(
@@ -298,7 +298,7 @@ def hist_frequency_2d(plot_scores: np.ndarray, bins: int) -> np.ndarray:
 def mean_absolute_error(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
 ) -> tuple[float, float]:
-  """Compute itemwise distance mean.
+  """Compute (L1) itemwise distance mean.
 
   Args:
     human: An array of human responses.
@@ -310,6 +310,22 @@ def mean_absolute_error(
     responses, and of the other machine and the human responses.
   """
   return (np.mean(abs(human - machine1)), np.mean(abs(human - machine2)))
+
+def max_absolute_error(
+    human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
+) -> tuple[float, float]:
+  """Compute (L_infinity) itemwise maximum distance.
+
+  Args:
+    human: An array of human responses.
+    machine1: An array of machine responses.
+    machine2: An array of responses from another machine.
+
+  Returns:
+    A 2-tuple of the itemwise max distance between one machine and the human
+    responses, and of the other machine and the human responses.
+  """
+  return (np.max(abs(human - machine1)), np.max(abs(human - machine2)))
 
 def itemwise_emds(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray

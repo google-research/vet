@@ -64,7 +64,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     """Writes the config file csv content for testing."""
     # A string template with metric name to be specified.
     config_lines = f"""
-        ,Agg over Trials,# trials,Sampler,Shaper,Comparison(Metric),Agg_over_votes
+        line,agg_over_trials,num_trials,sampler,shaper,comparison_metric,agg_over_responses
         1,mean,1000,"(all_items,bootstrap_responses)",noop,"{metric_spec}",mean
       """
     with open(self.config_filename, 'w') as f:
@@ -77,7 +77,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.experiments_manager.run_experiments()
     output_csv_file = os.path.join(
         self.experiments_manager.exp_dir,
-        self.experiments_manager.out_file_name,
+        self.experiments_manager.output_file_name,
     )
     result_df = pd.read_csv(output_csv_file)
     self.assertTupleEqual((1, 37), result_df.shape)
@@ -91,7 +91,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
 
     output_csv_file = os.path.join(
         self.experiments_manager.exp_dir,
-        self.experiments_manager.out_file_name,
+        self.experiments_manager.output_file_name,
     )
     result_df = pd.read_csv(output_csv_file)
     self.assertTupleEqual((1, 37), result_df.shape)

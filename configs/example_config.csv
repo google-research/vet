@@ -1,4 +1,4 @@
-Line,Agg over Trials,# trials,Sampler,Shaper,Comparison(Metric),Agg_over_votes
+line,agg_over_trials,num_trials,sampler,shaper,comparison_Metric,agg_over_responses
 1,mean,1000,"(all_items,all_responses)",noop,cos_distance,mean
 2,mean,1000,"(bootstrap_items,all_responses)",noop,mean_absolute_error,mean
 3,mean,1000,"(bootstrap_items,noop)",noop,wins_mae,mean
