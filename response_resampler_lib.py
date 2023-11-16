@@ -540,7 +540,6 @@ class Experiment:
         "noop": noop,
         "vectorize": vectorize,
     }
-
     samplers = {
         "(all_items,bootstrap_responses)": resample_items_and_responses_factory(
             all_items, sample_responses(self.k_responses)
@@ -549,14 +548,14 @@ class Experiment:
             all_items, sample_responses(1)
         ),
         "(all_items,all_responses)": resample_items_and_responses_factory(
-            all_items, sample_all
+            all_items, noop
         ),
         "(bootstrap_items,bootstrap_responses)": (
             resample_items_and_responses_factory(
                 bootstrap_items, sample_responses(self.k_responses))
         ),
         "(bootstrap_items,all_responses)": resample_items_and_responses_factory(
-            bootstrap_items, sample_all
+            bootstrap_items, noop
         ),
         "(bootstrap_items,one_response)": resample_items_and_responses_factory(
             bootstrap_items, sample_responses(1)
@@ -565,9 +564,6 @@ class Experiment:
             resample_items_and_responses_factory(
                 bootstrap_items, first_response
             )
-        ),
-        "(bootstrap_items,noop)": resample_items_and_responses_factory(
-            bootstrap_items, noop
         ),
     }
     ground_samplers = {
@@ -593,9 +589,6 @@ class Experiment:
         "(bootstrap_items,first_response)": (
             resample_items_and_responses_factory(bootstrap_items,
                                                  first_response)
-        ),
-        "(bootstrap_items,noop)": resample_items_and_responses_factory(
-            bootstrap_items, noop
         ),
     }
     parameters_dict = {
