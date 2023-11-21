@@ -16,7 +16,6 @@ Tests for response_resampler_lib.
 """
 
 import os
-import pickle
 from unittest import mock
 
 from absl.testing import absltest
@@ -35,8 +34,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.out_dir = self.create_tempdir()
     self.data_filename = self.out_dir.create_file('output.pkl')
     datasets = psample.generate_response_tables(10, 5, 0.3, 2)
-    with open(self.data_filename, 'wb') as f:
-      pickle.dump(datasets, f)
+    psample.write_samples_to_file(datasets, self.data_filename, use_pickle=True)
 
     # Create the experiment config file.
     self.config_filename = self.out_dir.create_file(

@@ -43,6 +43,7 @@ from typing import Any, Callable, Mapping, Tuple
 
 from absl import logging
 import numpy as np
+import datatypes
 import machine_contest_metrics as mcm
 import pandas as pd
 
@@ -699,20 +700,22 @@ class ExperimentsManager:
     start_time = datetime.datetime.now()
     open_mode = "rb" if use_pickle else "r"
     with open(data_file, open_mode) as f:
-      response_sets = pickle.load(f) if use_pickle else json.load(f)
+      response_sets_dict = pickle.load(f) if use_pickle else json.load(f)
 
+    response_sets = datatypes.ResponseSets.from_dict(response_sets_dict)
     logging.info("finished loading")
     loading_time = datetime.datetime.now() - start_time
     logging.info("File loading time=%f", loading_time.total_seconds())
 
     conversion_start_time = datetime.datetime.now()
-    sliced_response_sets = {}
-    n, k = n_items, k_responses
-    for hyp, rest in response_sets.items():
-      sliced_response_sets[hyp] = [
-          {source: np.array(data)[:n, :k] for source, data in s.items()}
-          for s in rest
-      ]
+    # Reduce the size for all the data arrays in response_data when the
+    # response examples are over-generated.
+    for response_data in response_sets.alt_data_list:
+      response_data.trim(n_items, k_responses)
+    for response_data in response_sets.null_data_list:
+      response_data.trim(n_items, k_responses)
+
+    sliced_response_sets = response_sets.to_dict()
     conversion_time = datetime.datetime.now() - conversion_start_time
     logging.info("Data conversion time=%f", conversion_time.total_seconds())
 

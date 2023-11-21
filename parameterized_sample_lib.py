@@ -42,6 +42,8 @@ from typing import Any, Callable, List, Tuple
 from absl import logging
 import numpy as np
 
+import datatypes
+
 def toxicity_mean_dist() -> float:
   """Return the mean of a toxicity human rater distribution.
 
@@ -301,7 +303,7 @@ def generate_response_tables(
             List[Callable[[], float]],
         ],
     ] = alt_distr_gen,
-) -> dict[str, List[dict[str, np.ndarray]]]:
+) -> datatypes.ResponseSets:
   """Generates a collection of human and machine responses.
 
   Generates tables ("sets"), for null and alternate hypotheses
@@ -343,13 +345,19 @@ def generate_response_tables(
     )
 
     responses_alt.append(
-        {"gold": gold_alt, "preds1": preds1_alt, "preds2": preds2_alt}
+        datatypes.ResponseData(
+            gold=gold_alt, preds1=preds1_alt, preds2=preds2_alt
+        )
     )
     responses_null.append(
-        {"gold": gold_null, "preds1": preds1_null, "preds2": preds2_null}
+        datatypes.ResponseData(
+            gold=gold_null, preds1=preds1_null, preds2=preds2_null
+        )
     )
 
-  response_sets = {"alt": responses_alt, "null": responses_null}
+  response_sets = datatypes.ResponseSets(
+      alt_data_list=responses_alt, null_data_list=responses_null
+  )
 
   return response_sets
 
@@ -407,7 +415,7 @@ def norm_generator(
   return fn
 
 def write_samples_to_file(
-    response_sets: dict[str, List[dict[str, np.ndarray]]],
+    response_sets: datatypes.ResponseSets,
     output_filename: str,
     use_pickle: bool,
 ) -> None:
@@ -423,20 +431,9 @@ def write_samples_to_file(
   open_mode = "wb" if use_pickle else "w"
   with open(output_filename, open_mode) as f:
     if use_pickle:
-      pickle.dump(response_sets, f)
+      pickle.dump(response_sets.to_dict(), f)
     else:
-      conversion_start_time = datetime.datetime.now()
-      # Now that we have the data, convert it to json-compatible
-      response_sets = {
-          hyp: [
-              {source: dat.tolist() for source, dat in s.items()} for s in rest
-          ]
-          for hyp, rest in response_sets.items()
-      }
-      elapsed_time = datetime.datetime.now() - conversion_start_time
-      logging.info("Data conversion time=%f", elapsed_time.total_seconds())
-
-      json.dump(response_sets, f)
+      json.dump(response_sets.to_dict(), f)
 
   elapsed_time = datetime.datetime.now() - write_start_time
   logging.info("File writing time=%f", elapsed_time.total_seconds())

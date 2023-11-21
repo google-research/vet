@@ -32,12 +32,13 @@ python toxicity_parameterized_sample --exp_dir=/data_dir/path --distortion=.02
 import datetime
 import os
 import random as rand
-from typing import List, Sequence
+from typing import Sequence
 
 from absl import app
 from absl import flags
 from absl import logging
 import numpy as np
+import datatypes
 import parameterized_sample_lib as psample
 import pandas as pd
 
@@ -82,8 +83,8 @@ _RANDOM_SEED = flags.DEFINE_integer(
 )
 
 def generate_toxicity_data_responses(
-    file: str, response_sets: dict[str, List[dict[str, np.ndarray]]]
-) -> dict[str, List[dict[str, np.ndarray]]]:
+    file: str, response_sets: datatypes.ResponseSets
+) -> datatypes.ResponseSets:
   """Generate ground truth data that is consistent with toxicity dataset.
 
   This is used only to generate data based this dataset:
@@ -143,12 +144,12 @@ def generate_toxicity_data_responses(
   _, preds1_null, preds2_null = psample.sample_h(
       mac1_h_distrs, mach_null_h_distrs, mach_null_h_distrs, resps_per_item=5
   )
-  response_sets["alt"][0]["gold"] = toxicity_data
-  response_sets["alt"][0]["preds1"] = preds1_alt
-  response_sets["alt"][0]["preds2"] = preds2_alt
-  response_sets["null"][0]["gold"] = toxicity_data
-  response_sets["null"][0]["preds1"] = preds1_null
-  response_sets["null"][0]["preds2"] = preds2_null
+  response_sets.alt_data_list[0].gold = toxicity_data
+  response_sets.alt_data_list[0].preds1 = preds1_alt
+  response_sets.alt_data_list[0].preds2 = preds2_alt
+  response_sets.null_data_list[0].gold = toxicity_data
+  response_sets.null_data_list[0].preds1 = preds1_null
+  response_sets.null_data_list[0].preds2 = preds2_null
   return response_sets
 
 def main(argv: Sequence[str]) -> None:

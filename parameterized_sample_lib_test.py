@@ -101,11 +101,11 @@ class ParameterizedSampleTest(absltest.TestCase):
       )
 
     samples = psample.generate_response_tables(100, 5, 0.3, 100, alt_distr_gen)
-    for sample_set in samples["alt"]:
-      for item in sample_set["gold"]:
+    for sample_set in samples.alt_data_list:
+      for item in sample_set.gold:
         for response in item:
           self.assertEqual(response, 0.5)
-      for item in sample_set["preds1"]:
+      for item in sample_set.preds1:
         for response in item:
           self.assertEqual(response, 0.5)
 
