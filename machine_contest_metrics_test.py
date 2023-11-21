@@ -14,6 +14,7 @@ limitations under the License.
 
 Tests machine_contest_metrics.
 """
+
 from typing import Any, Callable
 
 from absl.testing import absltest
@@ -324,12 +325,26 @@ class MachineContestMetricsTest(absltest.TestCase):
     p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
     self.assertAlmostEqual(p_value, 0.5, places=2)
 
-  def test_calculate_p_value_imbalanced(self):
+  def test_calculate_p_value_null_all_greater(self):
     """Test the case where `s_alt` is no better than `s_null` for all scores."""
     s_null = np.arange(10)
     s_alt = np.zeros_like(s_null)
     p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
-    self.assertAlmostEqual(p_value, 1.0, places=2)
+    self.assertAlmostEqual(p_value, 0.0, places=2)
+
+  def test_calculate_p_value_alt_all_greater(self):
+    """Test the case where `s_alt` is always better than `s_null`."""
+    s_null = np.repeat(-1, 10)
+    s_alt = np.random.permutation(10)
+    p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
+    self.assertAlmostEqual(p_value, 0.9, places=2)
+
+  def test_calculate_p_value_same_items(self):
+    """Test when `s_null` and `s_alt` have the same items."""
+    s_null = np.random.permutation(10)
+    s_alt = np.random.permutation(10)
+    p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
+    self.assertAlmostEqual(p_value, 0.45, places=2)
 
   def test_mean_confidence_bounds(self):
     scores = np.arange(1000)

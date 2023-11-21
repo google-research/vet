@@ -540,6 +540,11 @@ def calculate_p_value(s_null: np.ndarray, s_alt: np.ndarray) -> float:
   """
   s_null = sorted(s_null, reverse=True)
   s_alt = sorted(s_alt, reverse=True)
+
+  # All s_null items are smaller than the smallest one in s_alt.
+  if s_null[0] < s_alt[-1]:
+    return (len(s_null) - 1) / len(s_null)
+
   p_counts = i = j = 0
   while i < len(s_null) and j < len(s_alt):
     if s_null[i] >= s_alt[j]:
@@ -547,8 +552,11 @@ def calculate_p_value(s_null: np.ndarray, s_alt: np.ndarray) -> float:
     else:
       p_counts += i
       j += 1
-  if j < len(s_alt):
-    p_counts += i * (len(s_alt) - j)
+
+  # There are more s_alt items bigger than the last one in s_null.
+  # They should all be counted.
+  if j < len(s_alt) - 1 and s_alt[j] > s_null[-1]:
+    p_counts += (len(s_alt) - j - 1) * (len(s_null) - 1)
 
   return p_counts / (len(s_null) * len(s_alt))
 
