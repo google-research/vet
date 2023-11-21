@@ -529,6 +529,7 @@ class Experiment:
         "spearmanr": mcm.spearmanr,
         "emd_agg": mcm.emd_aggregated,
         "mean_of_emds": mcm.mean_of_emds,
+        "mean": mcm.mean,
         "cos_distance": mcm.cos_distance,
         "accuracy": mcm.accuracy,
         "precision": mcm.precision,

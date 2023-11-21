@@ -167,6 +167,20 @@ class MachineContestMetricsTest(absltest.TestCase):
         linear_responses,
     )
 
+  def test_mean(self):
+    expected_linear_results = [[0.5, 0.5], [1.0, 0.5], [0.0, 1.0]]
+
+    linear_responses = format_data([
+        [[0.1, 0.1], [0.2, 0.8], [0.3, 0.7]],
+        [[0, 0.1], [1.0, 1.0], [0.5, 0.5]],
+        [[1.0, 0], [0, 0], [1.0, 1.0]],
+    ])
+    self.metric_helper(
+        machine_contest_metrics.mean,
+        expected_linear_results,
+        linear_responses,
+    )
+
   def test_f1_score(self):
     linear_responses = format_data([
         [[0.6, 0.6, 0.3], [0.8, 0.4, 0.8], [0.3, 0.3, 0.8]],

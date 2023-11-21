@@ -143,6 +143,24 @@ def emd_aggregated(
       stats.wasserstein_distance(freq_machine2, freq_human),
   )
 
+def mean(
+    human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
+) -> tuple[float, float]:
+  """Compute means of machine1 and machine2.
+
+  Note: human scores is not being used.
+
+  Args:
+    human: A list of human scores.
+    machine1: A list of machine scores.
+    machine2: Another list of machine scores.
+
+  Returns:
+    A pair of mean scores for machines 1 and 2 respectively.
+  """
+  del human
+  return (np.mean(machine1), np.mean(machine2))
+
 def root_mean_squared_error(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
 ) -> tuple[float, float]:
