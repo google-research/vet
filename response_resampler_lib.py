@@ -139,18 +139,19 @@ def first_response(responses: np.ndarray) -> np.ndarray:
   """Returns the first item of a vector or list as a one-element list."""
   return np.array([responses[0]])
 
-def sample_responses(k: int) -> Callable[[np.ndarray], np.ndarray]:
+def sample_responses(k_responses: int) -> Callable[[np.ndarray], np.ndarray]:
   """Bootstrap sample from a set of responses."""
-  func = lambda x: (rand.choices(x, k=k))
+  func = lambda x: (rand.choices(x, k=k_responses))
   return func
 
 def sample_all(responses: np.ndarray) -> np.ndarray:
   """Bootstrap sample from all responses per item."""
-  return np.array(rand.choices(responses, k=len(responses)))
+  return np.array(rand.sample(responses, k=len(responses)))
 
-def sample_ground_responses(k: int) -> Callable[[np.ndarray], np.ndarray]:
+def sample_ground_responses(k_responses: int) -> Callable[[np.ndarray],
+                                                          np.ndarray]:
   """Sample without replacement from ground truth data."""
-  func = lambda x: (rand.sample(list(x), k=k))
+  func = lambda x: (rand.choices(list(x), k=k_responses))
   return func
 
 ################################################

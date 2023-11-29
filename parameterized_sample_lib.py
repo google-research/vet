@@ -182,8 +182,8 @@ def sample_h(
     resps_per_item: The number of responses per item.
 
   Returns:
-    three response tables for humans, machine1, and machine2 responses,
-    respectively, as numpy arrays
+    Three response tables for humans, machine1, and machine2 responses,
+    respectively, as numpy arrays.
   """
   gold = [sample_from(hdistr, resps_per_item) for hdistr in hum_h_distrs]
   preds1 = [sample_from(hdistr, resps_per_item) for hdistr in mach1_h_distrs]
@@ -291,8 +291,8 @@ def toxicity_distr_gen(
   )
 
 def generate_response_tables(
-    n: int = 1000,
-    k: int = 5,
+    n_items: int = 1000,
+    k_responses: int = 5,
     distortion: float = 0.3,
     num_trials: int = 1000,
     alt_distr_generator: Callable[
@@ -309,16 +309,16 @@ def generate_response_tables(
   Generates tables ("sets"), for null and alternate hypotheses
 
   Args:
-    n: number of items/set
-    k: number of responses/set
-    distortion: the mean/variance distortion value.
-    num_trials: number of samples of size NxK
-    alt_distr_generator: function that generates one gold, mach 1 and 2 response
-      table set
+    n_items: Number of items per set.
+    k_responses: Number of responses/set
+    distortion: Mean/variance distortion value.
+    num_trials: Number of samples of size n_items x k_responses.
+    alt_distr_generator: Function that generates one <gold, machine1, machine2>
+      response table set.
 
   Returns:
     A dictionary organized by null and alt hypothesis, with list of
-    dictionaries, with each dictionary containing one gold, mach1, mach2
+    dictionaries, with each dictionary containing one <gold, machine1, machine2>
     response.
   """
 
@@ -328,11 +328,11 @@ def generate_response_tables(
   for _ in range(num_trials):
     # Obtain response tables and results
     hum_h_distrs, mach1_h_distrs, mach2_h_distrs = alt_distr_generator(
-        n, distortion
+        n_items, distortion
     )
 
     gold_alt, preds1_alt, preds2_alt = sample_h(
-        hum_h_distrs, mach1_h_distrs, mach2_h_distrs, resps_per_item=k
+        hum_h_distrs, mach1_h_distrs, mach2_h_distrs, resps_per_item=k_responses
     )
 
     mach_null_h_distrs = [
@@ -341,7 +341,8 @@ def generate_response_tables(
     ]
 
     gold_null, preds1_null, preds2_null = sample_h(
-        hum_h_distrs, mach_null_h_distrs, mach_null_h_distrs, resps_per_item=k
+        hum_h_distrs, mach_null_h_distrs, mach_null_h_distrs,
+        resps_per_item=k_responses
     )
 
     responses_alt.append(
