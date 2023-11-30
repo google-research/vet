@@ -19,50 +19,36 @@ from typing import Any, Callable
 
 from absl.testing import absltest
 import numpy as np
+import datatypes
 import machine_contest_metrics
 
-def format_data(threedlist):
-  """Format data in our peculiar format.
+def format_data(
+    input_data_list: list[list[list[float]]],
+) -> list[datatypes.ResponseData]:
+  """Format data in our data classes.
 
   Args:
-    threedlist: a list with at least three levels of nesting.
+    input_data_list: a list response data. Each response data is in the format
+      of [gold_array, machine1_array, machine2_array].
 
   Returns:
-    A list with three levels of nesting, and the remaining levels are
-    a numpy array.
+    A list of ResponseData.
   """
-  return [np.asarray(t) for t in threedlist]
+  output = []
+  for gold, machine1, machine2 in input_data_list:
+    response_data = datatypes.ResponseData(
+        np.asarray(gold), np.asarray(machine1), np.asarray(machine2)
+    )
+    output.append(response_data)
+  return output
 
 class MachineContestMetricsTest(absltest.TestCase):
-
-  def setUp(self):
-    """This method will be run before each of the test methods in the class."""
-    super().setUp()
-
-    # Create a few simple datasets.
-    self.linear_responses = [
-        [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]],
-        [[0, 0], [0, 0], [0, 0]],
-        [[1, 1], [1, 1], [1, 1]],
-    ]
-    self.linear_responses = format_data(self.linear_responses)
-
-    self.twod_responses = [
-        [
-            [[0.1, 0.9], [0.1, 0.8]],
-            [[0.2, 0.8], [0.1, 0.7]],
-            [[0.3, 0.7], [0.2, 0.6]],
-        ],
-        [[[0, 0], [0, 0]], [[0, 0], [0, 0]], [[0, 0], [0, 0]]],
-        [[[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]],
-    ]
-    self.twod_responses = format_data(self.twod_responses)
 
   def metric_helper(
       self,
       metric: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray],
       expected_results: list[list[float]],
-      response_data: list[list[list[Any]]],
+      response_data_list: list[datatypes.ResponseData],
       metric_params: dict[str, Any] | None = None,
   ) -> None:
     """Runs tests on a given metric.
@@ -70,19 +56,19 @@ class MachineContestMetricsTest(absltest.TestCase):
     Args:
       metric: The metric to test.
       expected_results: A list of expected results for the metric.
-      response_data: A list of input data 3-tuples.
+      response_data_list: A list of input data 3-tuples.
       metric_params: The params needed by the metric func.
     """
 
     if metric_params is None:
       metric_params = {}
-    for (human, machine1, machine2), expected_results in zip(
-        response_data, expected_results
+    for response_data, expected_results in zip(
+        response_data_list, expected_results
     ):
       results = metric(
-          np.array(human),
-          np.array(machine1),
-          np.array(machine2),
+          response_data.gold,
+          response_data.preds1,
+          response_data.preds2,
           **metric_params
       )
       for result, expected in zip(results, expected_results):
@@ -133,11 +119,16 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_cos_distance(self):
+    linear_responses = format_data([
+        [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]],
+        [[0, 0], [0, 0], [0, 0]],
+        [[1, 1], [1, 1], [1, 1]],
+    ])
     expected_linear_results = [[0.00900, 0.04297], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.cos_distance,
         expected_linear_results,
-        self.linear_responses,
+        linear_responses,
     )
 
   def test_emd_aggregated(self):
@@ -197,6 +188,12 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_root_mean_squared_error(self):
+    linear_responses = format_data([
+        [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]],
+        [[0, 0], [0, 0], [0, 0]],
+        [[1, 1], [1, 1], [1, 1]],
+    ])
+
     expected_linear_results = [
         [0.1, 0.2],
         [0.0, 0.0],
@@ -206,7 +203,7 @@ class MachineContestMetricsTest(absltest.TestCase):
     self.metric_helper(
         machine_contest_metrics.root_mean_squared_error,
         expected_linear_results,
-        self.linear_responses,
+        linear_responses,
     )
 
   def test_precision(self):
@@ -225,27 +222,45 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_wins_mae(self):
+    linear_responses = format_data([
+        [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]],
+        [[0, 0], [0, 0], [0, 0]],
+        [[1, 1], [1, 1], [1, 1]],
+    ])
+
     expected_linear_results = [[2, 0], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.wins_mae,
         expected_linear_results,
-        self.linear_responses,
+        linear_responses,
     )
 
   def test_mean_absolute_error(self):
+    linear_responses = format_data([
+        [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]],
+        [[0, 0], [0, 0], [0, 0]],
+        [[1, 1], [1, 1], [1, 1]],
+    ])
+
     expected_linear_results = [[0.1, 0.2], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.mean_absolute_error,
         expected_linear_results,
-        self.linear_responses,
+        linear_responses,
     )
 
   def test_max_absolute_error(self):
+    linear_responses = format_data([
+        [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]],
+        [[0, 0], [0, 0], [0, 0]],
+        [[1, 1], [1, 1], [1, 1]],
+    ])
+
     expected_linear_results = [[0.1, 0.2], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.max_absolute_error,
         expected_linear_results,
-        self.linear_responses,
+        linear_responses,
     )
 
   def test_kld(self):

@@ -248,7 +248,8 @@ class Experiment:
     exp_config = self.setup_experiment(config_row)
     self.metric = exp_config[ParameterTypes.COMPARISON_METRIC.value]
     self.item_level_aggregator = exp_config[
-        ParameterTypes.AGG_OVER_RESPONSES.value]
+        ParameterTypes.AGG_OVER_RESPONSES.value
+    ]
     self.num_trials = exp_config[ParameterTypes.NUM_TRIALS.value]
     self.sampler = exp_config[ParameterTypes.SAMPLER.value]
     self.ground_sampler = exp_config[ParameterTypes.GT_SAMPLER.value]
@@ -257,9 +258,7 @@ class Experiment:
 
   def run_trial(
       self,
-      machine1_scores: np.ndarray,
-      machine2_scores: np.ndarray,
-      human_scores: np.ndarray,
+      response_data: datatypes.ResponseData,
       sampler: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray],
   ) -> Tuple[float, float]:
     """Count the item wins for each system.
@@ -267,16 +266,15 @@ class Experiment:
       I.e., whichever system is closer to the gold value.
 
     Args:
-      machine1_scores: A 2D array of machine scores.
-      machine2_scores: Another 2D array of machine scores.
-      human_scores: A 2D array of human scores.
+      response_data: A ResponseData that contains gold, machine1 and machine2
+        responses.
       sampler: Determines how items from the args above are sampled.
 
     Returns:
       A set of pairs for every horizontal metric with wins/ties/losses
     """
     human_scores_t, machine1_scores_t, machine2_scores_t = sampler(
-        human_scores, machine1_scores, machine2_scores
+        response_data.gold, response_data.preds1, response_data.preds2
     )
     human_scores_t = np.array(
         [self.item_level_aggregator(x) for x in self.shaper(human_scores_t)]
@@ -292,33 +290,26 @@ class Experiment:
 
   def _get_ground_trial_results(
       self,
-      machine1_scores: np.ndarray,
-      machine2_scores: np.ndarray,
-      human_scores: np.ndarray,
-      null_sample: Mapping[str, np.ndarray],
+      alt_sample: datatypes.ResponseData,
+      null_sample: datatypes.ResponseData,
   ):
     """Get the results of a ground truth trial.
 
     Args:
-      machine1_scores: 2D array of responses from one machine.
-      machine2_scores: 2D array of responses from another machine.
-      human_scores: 2D of array of responses from humans.
-      null_sample: a sample of responses according to the null hypothesis.
+      alt_sample: A ResponseData that contains responses for the alternative
+        hypothesis.
+      null_sample: A ResponseData that contains responses for the null
+        hypothesis.
     """
 
-    machine1_scores_null = null_sample["preds1"]
-    machine2_scores_null = null_sample["preds2"]
-    human_scores_null = null_sample["gold"]
-
     null_machine1_ground, null_machine2_ground = self.run_trial(
-        machine1_scores_null,
-        machine2_scores_null,
-        human_scores_null,
+        null_sample,
         self.ground_sampler,
     )
 
     alt_machine1_ground, alt_machine2_ground = self.run_trial(
-        machine1_scores, machine2_scores, human_scores, self.ground_sampler
+        alt_sample,
+        self.ground_sampler,
     )
 
     self.sample_results[GroundStatTypes.M1_GT_NULL.value].append(
@@ -336,32 +327,32 @@ class Experiment:
 
   def _get_test_set_results(
       self,
-      machine1_test: np.ndarray,
-      machine2_test: np.ndarray,
-      human_test: np.ndarray,
+      alt_sample: datatypes.ResponseData,
   ):
     """Run tests and add results to _sample_results.
 
     Args:
-      machine1_test: 2D array of responses from one machine.
-      machine2_test: 2D array of responses from another machine.
-      human_test: 2D of array of responses from humans.
+      alt_sample: A ResponseData that contains responses for the alternative
+        hypothesis.
     """
 
     machine1_wins_per_trial, machine2_wins_per_trial = np.transpose(
         [
-            self.run_trial(
-                machine1_test, machine2_test, human_test, self.sampler
-            )
+            self.run_trial(alt_sample, self.sampler)
             for _ in range(self.num_trials)
         ]
     )
 
     # Now construct a null hypothesis and test
-    null_test = np.concatenate([machine1_test, machine2_test], axis=1)
+    null_responses = np.concatenate(
+        [alt_sample.preds1, alt_sample.preds2], axis=1
+    )
+    null_test = datatypes.ResponseData(
+        alt_sample.gold, null_responses, null_responses
+    )
     null1_score, null2_score = np.transpose(
         [
-            self.run_trial(null_test, null_test, human_test, self.sampler)
+            self.run_trial(null_test, self.sampler)
             for _ in range(self.num_trials)
         ]
     )
@@ -555,7 +546,8 @@ class Experiment:
         ),
         "(bootstrap_items,bootstrap_responses)": (
             resample_items_and_responses_factory(
-                bootstrap_items, sample_responses(self.k_responses))
+                bootstrap_items, sample_responses(self.k_responses)
+            )
         ),
         "(bootstrap_items,all_responses)": resample_items_and_responses_factory(
             bootstrap_items, noop
@@ -581,7 +573,8 @@ class Experiment:
         ),
         "(bootstrap_items,bootstrap_responses)": (
             resample_items_and_responses_factory(
-                bootstrap_items, sample_ground_responses(self.k_responses))
+                bootstrap_items, sample_ground_responses(self.k_responses)
+            )
         ),
         "(bootstrap_items,one_response)": resample_items_and_responses_factory(
             bootstrap_items, sample_ground_responses(1)
@@ -590,8 +583,9 @@ class Experiment:
             bootstrap_items, noop
         ),
         "(bootstrap_items,first_response)": (
-            resample_items_and_responses_factory(bootstrap_items,
-                                                 first_response)
+            resample_items_and_responses_factory(
+                bootstrap_items, first_response
+            )
         ),
     }
     parameters_dict = {
@@ -618,8 +612,8 @@ class Experiment:
 
   def run_experiment(
       self,
-      alt_samples: list[dict[Any, Any]],
-      null_samples: list[dict[Any, Any]],
+      alt_samples: list[datatypes.ResponseData],
+      null_samples: list[datatypes.ResponseData],
   ) -> Mapping[str, float]:
     """Executes an experiment given sample data.
 
@@ -638,23 +632,11 @@ class Experiment:
 
     count = 0
     for alt_sample, null_sample in zip(alt_samples, null_samples):
-      machine1_scores = alt_sample["preds1"]
-      machine2_scores = alt_sample["preds2"]
-      human_votes = alt_sample["gold"]
-
       if count == 0:
-        self._get_test_set_results(
-            machine1_scores, machine2_scores, human_votes
-        )
-
+        self._get_test_set_results(alt_sample)
         count += 1
 
-      self._get_ground_trial_results(
-          machine1_scores,
-          machine2_scores,
-          human_votes,
-          null_sample,
-      )
+      self._get_ground_trial_results(alt_sample, null_sample)
 
     return self._aggregate_experiment_results()
 
@@ -689,14 +671,11 @@ class ExperimentsManager:
     self.exp_dir = exp_dir
     self.n_items = n_items
     self.k_responses = k_responses
-    if line == -1:
-      self.output_file_name = (
-          f"results_N={n_items}_K={k_responses}_{input_response_file}.csv"
-      )
-    else:
-      self.output_file_name = (
-          f"results_N={n_items}_K={k_responses}_{input_response_file}_line={line}.csv"
-      )
+    line_str = "" if line == -1 else f"_line={line}"
+    self.output_file_name = (
+        f"results_N={n_items}_K={k_responses}_{input_response_file}"
+        f"{line_str}.csv"
+    )
     data_file = os.path.join(exp_dir, input_response_file)
     logging.info("Opening data file %s", data_file)
     start_time = datetime.datetime.now()
@@ -717,7 +696,6 @@ class ExperimentsManager:
     for response_data in response_sets.null_data_list:
       response_data.trim(n_items, k_responses)
 
-    sliced_response_sets = response_sets.to_dict()
     conversion_time = datetime.datetime.now() - conversion_start_time
     logging.info("Data conversion time=%f", conversion_time.total_seconds())
 
@@ -731,8 +709,8 @@ class ExperimentsManager:
     self.e_grid[ParameterTypes.GT_SAMPLER.value] = self.e_grid[
         ParameterTypes.SAMPLER.value
     ]
-    self.alt_samples = sliced_response_sets["alt"]
-    self.null_samples = sliced_response_sets["null"]
+    self.alt_samples = response_sets.alt_data_list
+    self.null_samples = response_sets.null_data_list
     self.line = line
     self.elapsed_t = datetime.timedelta(0)
 
