@@ -71,16 +71,37 @@ class DatatypesTest(absltest.TestCase):
           'null': [response_data_dict, response_data_dict],
       })
 
-  def test_response_data_trim(self):
+  def test_response_data_truncate(self):
     response_data = datatypes.ResponseData.from_dict({
         'gold': [[1, 2], [3, 4]],
         'preds1': [[4, 5], [6, 7]],
         'preds2': [[6, 7], [8, 9]],
     })
-    response_data.trim(n=1, k=1)
+    response_data.truncate(n_items=1, k_responses=1)
     self.assertEqual(response_data.gold, [[1]])
     self.assertEqual(response_data.preds1, [[4]])
     self.assertEqual(response_data.preds2, [[6]])
+
+  def test_response_sets_truncate(self):
+    response_data_1 = datatypes.ResponseData.from_dict({
+        'gold': [[1, 2]],
+        'preds1': [[3, 4]],
+        'preds2': [[5, 6]],
+    })
+    response_data_2 = datatypes.ResponseData.from_dict({
+        'gold': [[10, 20]],
+        'preds1': [[30, 40]],
+        'preds2': [[50, 60]],
+    })
+    response_sets = datatypes.ResponseSets([response_data_1], [response_data_2])
+    response_sets.truncate(n_items=1, k_responses=1)
+    self.assertEqual(
+        response_sets.to_dict(),
+        {
+            'alt': [{'gold': [[1]], 'preds1': [[3]], 'preds2': [[5]]}],
+            'null': [{'gold': [[10]], 'preds1': [[30]], 'preds2': [[50]]}],
+        },
+    )
 
 if __name__ == '__main__':
   absltest.main()

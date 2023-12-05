@@ -52,11 +52,11 @@ class ResponseData:
   preds1: np.ndarray
   preds2: np.ndarray
 
-  def trim(self, n: int, k: int):
+  def truncate(self, n_items: int, k_responses: int):
     """Trims the arrays down to size n*k."""
-    self.gold = self.gold[:n, :k]
-    self.preds1 = self.preds1[:n, :k]
-    self.preds2 = self.preds2[:n, :k]
+    self.gold = self.gold[:n_items, :k_responses]
+    self.preds1 = self.preds1[:n_items, :k_responses]
+    self.preds2 = self.preds2[:n_items, :k_responses]
 
   def to_dict(self) -> dict[str, Any]:
     """Converts the data fields to a dictionary."""
@@ -149,3 +149,10 @@ class ResponseSets:
       )
 
     return response_sets
+
+  def truncate(self, n_items: int, k_responses: int):
+    """Trims the ResponseData in the data lists down to size n*k."""
+    for response_data in self.alt_data_list:
+      response_data.truncate(n_items, k_responses)
+    for response_data in self.null_data_list:
+      response_data.truncate(n_items, k_responses)

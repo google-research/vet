@@ -148,8 +148,9 @@ def sample_all(responses: np.ndarray) -> np.ndarray:
   """Bootstrap sample from all responses per item."""
   return np.array(rand.sample(responses, k=len(responses)))
 
-def sample_ground_responses(k_responses: int) -> Callable[[np.ndarray],
-                                                          np.ndarray]:
+def sample_ground_responses(
+    k_responses: int,
+) -> Callable[[np.ndarray], np.ndarray]:
   """Sample without replacement from ground truth data."""
   func = lambda x: (rand.choices(list(x), k=k_responses))
   return func
@@ -336,12 +337,9 @@ class Experiment:
         hypothesis.
     """
 
-    machine1_wins_per_trial, machine2_wins_per_trial = np.transpose(
-        [
-            self.run_trial(alt_sample, self.sampler)
-            for _ in range(self.num_trials)
-        ]
-    )
+    machine1_wins_per_trial, machine2_wins_per_trial = np.transpose([
+        self.run_trial(alt_sample, self.sampler) for _ in range(self.num_trials)
+    ])
 
     # Now construct a null hypothesis and test
     null_responses = np.concatenate(
@@ -350,12 +348,9 @@ class Experiment:
     null_test = datatypes.ResponseData(
         alt_sample.gold, null_responses, null_responses
     )
-    null1_score, null2_score = np.transpose(
-        [
-            self.run_trial(null_test, self.sampler)
-            for _ in range(self.num_trials)
-        ]
-    )
+    null1_score, null2_score = np.transpose([
+        self.run_trial(null_test, self.sampler) for _ in range(self.num_trials)
+    ])
 
     alt_test_diff = machine1_wins_per_trial - machine2_wins_per_trial
     null_test_diff = null1_score - null2_score
@@ -691,10 +686,7 @@ class ExperimentsManager:
     conversion_start_time = datetime.datetime.now()
     # Reduce the size for all the data arrays in response_data when the
     # response examples are over-generated.
-    for response_data in response_sets.alt_data_list:
-      response_data.trim(n_items, k_responses)
-    for response_data in response_sets.null_data_list:
-      response_data.trim(n_items, k_responses)
+    response_sets.truncate(n_items, k_responses)
 
     conversion_time = datetime.datetime.now() - conversion_start_time
     logging.info("Data conversion time=%f", conversion_time.total_seconds())
