@@ -158,40 +158,32 @@ def sample_ground_responses(
 ################################################
 # item_samplers
 
-def all_items(
-    human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def all_items(response_data: datatypes.ResponseData) -> datatypes.ResponseData:
   """Take all items from each dataset."""
-  return human, machine1, machine2
+  return response_data
 
 def bootstrap_items(
-    human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    response_data: datatypes.ResponseData,
+) -> datatypes.ResponseData:
   """Bootstrap sample from the items in each dataset."""
+  human = response_data.gold
   indices = rand.choices(range(len(human)), k=len(human))
   human_scores_t = np.take(human, indices, axis=0)
-  machine1_scores_t = np.take(machine1, indices, axis=0)
-  machine2_scores_t = np.take(machine2, indices, axis=0)
-  return human_scores_t, machine1_scores_t, machine2_scores_t
+  machine1_scores_t = np.take(response_data.preds1, indices, axis=0)
+  machine2_scores_t = np.take(response_data.preds2, indices, axis=0)
+  return datatypes.ResponseData(
+      human_scores_t, machine1_scores_t, machine2_scores_t
+  )
 
 def resample_items_and_responses(
-    human: np.ndarray,
-    machine1: np.ndarray,
-    machine2: np.ndarray,
-    item_sampler: Callable[
-        [np.ndarray, np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, np.ndarray],
-    ],
-    response_sampler: Callable[
-        [np.ndarray[Any, np.dtype]], np.ndarray[Any, np.dtype]
-    ],
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    response_data: datatypes.ResponseData,
+    item_sampler: Callable[[datatypes.ResponseData], datatypes.ResponseData],
+    response_sampler: Callable[[np.ndarray], np.ndarray],
+) -> datatypes.ResponseData:
   """Construct a 2D bootstrap sample across three datasets.
 
   Args:
-    human: A 2D array of human responses.
-    machine1: A 2D array of machine responses.
-    machine2: Another 2D array of machine responses.
+    response_data: Contains responses for human, machine1 and machine2.
     item_sampler: The method for sampling items
     response_sampler: The method for sampling responses.
 
@@ -199,8 +191,10 @@ def resample_items_and_responses(
     A sample of the inputs, according to the provided methods,
     where the sampled items across all three datasets are the same.
   """
-  human, machine1, machine2 = item_sampler(human, machine1, machine2)
-
+  sampled_response_data = item_sampler(response_data)
+  human = sampled_response_data.gold
+  machine1 = sampled_response_data.preds1
+  machine2 = sampled_response_data.preds2
   if len(machine1[0]) > len(human[0]):
     machine1 = [sample_responses(len(human[0]))(x) for x in machine1]
     machine2 = [sample_responses(len(human[0]))(x) for x in machine2]
@@ -209,15 +203,14 @@ def resample_items_and_responses(
   machine1 = [response_sampler(x) for x in machine1]
   machine2 = [response_sampler(x) for x in machine2]
 
-  return np.array(human), np.array(machine1), np.array(machine2)
+  return datatypes.ResponseData(
+      np.array(human), np.array(machine1), np.array(machine2)
+  )
 
 def resample_items_and_responses_factory(
-    item_sampler: Callable[
-        [np.ndarray, np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, np.ndarray],
-    ],
+    item_sampler: Callable[[datatypes.ResponseData], datatypes.ResponseData],
     response_sampler: Callable[[np.ndarray], np.ndarray],
-) -> Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]:
+) -> Callable[[datatypes.ResponseData], datatypes.ResponseData]:
   """Construct a 2D bootstrap sampler across three datasets.
 
   Args:
@@ -229,8 +222,8 @@ def resample_items_and_responses_factory(
     and response_sampler arguments fixed.
   """
   # pylint: disable=g-long-lambda
-  return lambda human, machine1, machine2: resample_items_and_responses(
-      human, machine1, machine2, item_sampler, response_sampler
+  return lambda response_data: resample_items_and_responses(
+      response_data, item_sampler, response_sampler
   )
 
 class Experiment:
@@ -260,7 +253,7 @@ class Experiment:
   def run_trial(
       self,
       response_data: datatypes.ResponseData,
-      sampler: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray],
+      sampler: Callable[[datatypes.ResponseData], np.ndarray],
   ) -> Tuple[float, float]:
     """Count the item wins for each system.
 
@@ -274,9 +267,10 @@ class Experiment:
     Returns:
       A set of pairs for every horizontal metric with wins/ties/losses
     """
-    human_scores_t, machine1_scores_t, machine2_scores_t = sampler(
-        response_data.gold, response_data.preds1, response_data.preds2
-    )
+    sampled_response_data = sampler(response_data)
+    human_scores_t = sampled_response_data.gold
+    machine1_scores_t = sampled_response_data.preds1
+    machine2_scores_t = sampled_response_data.preds2
     human_scores_t = np.array(
         [self.item_level_aggregator(x) for x in self.shaper(human_scores_t)]
     )
