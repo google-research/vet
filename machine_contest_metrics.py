@@ -22,6 +22,7 @@ compared to a third.
 """
 
 import math
+
 import numpy as np
 from scipy import spatial
 from scipy import stats
@@ -526,7 +527,7 @@ def lower_wins(machine1: np.ndarray, machine2: np.ndarray) -> tuple[int, int]:
   return higher_wins(machine2, machine1)
 
 def calculate_p_value(s_null: np.ndarray, s_alt: np.ndarray) -> float:
-  """Compute the p-score for null and alternative hypothesis results.
+  """Compute the p-value for null and alternative hypothesis results.
 
   Provides a one-sided test with the assumption that alt distribution is biased
   greater than the null distribution.
@@ -536,29 +537,36 @@ def calculate_p_value(s_null: np.ndarray, s_alt: np.ndarray) -> float:
     s_alt: A sequence of alt hypothesis results.
 
   Returns:
-    The p-score for the results.
+    The p-value for the results.
   """
   s_null = sorted(s_null, reverse=True)
   s_alt = sorted(s_alt, reverse=True)
 
-  # All s_null items are smaller than the smallest one in s_alt.
+  # If all null hypothesis results are smaller than all alternative hypothesis
+  # results then the p-value is 0 and, hence, H_0 is rejected.
   if s_null[0] < s_alt[-1]:
-    return (len(s_null) - 1) / len(s_null)
+    return 0.0
+  # If all null hypothesis results are larger than all alternative hypothesis
+  # results then the p-value is 1 and, hence, H_0 clearly cannot be rejected.
+  elif s_alt[0] < s_null[-1]:
+    return 1.0
 
-  p_counts = i = j = 0
+  p_count = 0  # numerator of p-value
+  i = j = 0
   while i < len(s_null) and j < len(s_alt):
     if s_null[i] >= s_alt[j]:
       i += 1
     else:
-      p_counts += i
+      p_count += i
       j += 1
 
   # There are more s_alt items bigger than the last one in s_null.
   # They should all be counted.
   if j < len(s_alt) - 1 and s_alt[j] > s_null[-1]:
-    p_counts += (len(s_alt) - j - 1) * (len(s_null) - 1)
+    p_count += (len(s_alt) - j - 1) * (len(s_null) - 1)
 
-  return p_counts / (len(s_null) * len(s_alt))
+  p_value = p_count / (len(s_null) * len(s_alt))
+  return p_value
 
 def mean_and_confidence_bounds(
     scores: np.ndarray,
