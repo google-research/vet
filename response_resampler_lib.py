@@ -619,11 +619,8 @@ class Experiment:
     """
     self.sample_results = collections.defaultdict(list)
 
-    count = 0
     for alt_sample, null_sample in zip(alt_samples, null_samples):
-      if count == 0:
-        self._get_test_set_results(alt_sample)
-        count += 1
+      self._get_test_set_results(alt_sample)
 
       self._get_ground_trial_results(alt_sample, null_sample)
 

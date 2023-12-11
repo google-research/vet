@@ -12,23 +12,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Code support for parameterized stochastic models for probabilistic response.
+Code support for parameterized stochastic models for probabilistic responses
+mixed with the toxicity data:
+https://data.esrg.stanford.edu/study/toxicity-perspectives
 
-Use of this binary is based on two functions that work together. The main
-function is generate_response_tables. It creates a collection of triple-wise
-samples of responses for the three stochastic models. The caller specifies the
-number of samples, the number of  items in each sample, and the number of
-responses per item that each of the three machines provides.
-
-The second function is passed as an argument to generate_response_tables.
-It generates for each item and each of the three responses (human and machines
-1 and 2) a probability distribution function, which generate_response tables
-uses to generate the samples.
+This binary first generates the standard probabilistic responses using
+distribution models fit to the toxicity data. Then it replaces the generated
+gold data with the real human-annotated toxicity data, for both null and
+alternative hypothesis datasets.
 
 Example usage:
 
-python toxicity_parameterized_sample --exp_dir=/data_dir/path --distortion=.02
+python toxicity_parameterized_sample --exp_dir=/data_dir/path --distortion=.02 \
+    --input=toxicity_ratings_sample.csv
 """
+
 import datetime
 import os
 import random as rand
@@ -93,15 +91,15 @@ def generate_toxicity_data_responses(
   This function is needed because, unlike data that is generated purely
   synthetically, here we have actual data that we should run bootstrapping on.
   The responses that we bootstrap from are always the first set of responses
-  generated, and so this function replaces the first set of synthetic responses
+  generated, and so this function replaces the gold sets of synthetic responses
   with the real data.
 
   Args:
     file: The path and name of the datafile (if downloaded from the website).
-    response_sets: the responses sets generated.
+    response_sets: the response sets generated.
 
   Returns:
-    A new set of response sets, with the first collection of response sets
+    A new set of response sets, with all the gold collection of response sets
     based directly on the toxicity dataset.
   """
   # We will open this file and use it to populate the first set of gold data
@@ -132,24 +130,26 @@ def generate_toxicity_data_responses(
       for mean, dev in zip(machine2_means, human_stdev)
   ]
 
-  _, preds1_alt, preds2_alt = psample.sample_h(
-      mac1_h_distrs, mac1_h_distrs, mac2_h_distrs, resps_per_item=5
-  )
+  for t in range(len(response_sets.alt_data_list)):
+    _, preds1_alt, preds2_alt = psample.sample_h(
+        mac1_h_distrs, mac1_h_distrs, mac2_h_distrs, resps_per_item=5
+    )
 
-  mach_null_h_distrs = [
-      psample.null_hypothesis_generator(mach1_h_distr, mach2_h_distr)
-      for mach1_h_distr, mach2_h_distr in zip(mac1_h_distrs, mac2_h_distrs)
-  ]
+    mach_null_h_distrs = [
+        psample.null_hypothesis_generator(mach1_h_distr, mach2_h_distr)
+        for mach1_h_distr, mach2_h_distr in zip(mac1_h_distrs, mac2_h_distrs)
+    ]
 
-  _, preds1_null, preds2_null = psample.sample_h(
-      mac1_h_distrs, mach_null_h_distrs, mach_null_h_distrs, resps_per_item=5
-  )
-  response_sets.alt_data_list[0].gold = toxicity_data
-  response_sets.alt_data_list[0].preds1 = preds1_alt
-  response_sets.alt_data_list[0].preds2 = preds2_alt
-  response_sets.null_data_list[0].gold = toxicity_data
-  response_sets.null_data_list[0].preds1 = preds1_null
-  response_sets.null_data_list[0].preds2 = preds2_null
+    _, preds1_null, preds2_null = psample.sample_h(
+        mac1_h_distrs, mach_null_h_distrs, mach_null_h_distrs, resps_per_item=5
+    )
+
+    response_sets.alt_data_list[t].gold = toxicity_data
+    response_sets.alt_data_list[t].preds1 = preds1_alt
+    response_sets.alt_data_list[t].preds2 = preds2_alt
+    response_sets.null_data_list[t].gold = toxicity_data
+    response_sets.null_data_list[t].preds1 = preds1_null
+    response_sets.null_data_list[t].preds2 = preds2_null
   return response_sets
 
 def main(argv: Sequence[str]) -> None:
