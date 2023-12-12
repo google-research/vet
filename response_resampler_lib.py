@@ -288,7 +288,7 @@ class Experiment:
       alt_sample: datatypes.ResponseData,
       null_sample: datatypes.ResponseData,
   ):
-    """Get the results of a ground truth trial.
+    """Get the results of ground truth trials.
 
     Args:
       alt_sample: A ResponseData that contains responses for the alternative
@@ -297,27 +297,27 @@ class Experiment:
         hypothesis.
     """
 
-    null_machine1_ground, null_machine2_ground = self.run_trial(
-        null_sample,
-        self.ground_sampler,
-    )
+    null_machine1_ground, null_machine2_ground = np.transpose([
+        self.run_trial(null_sample, self.ground_sampler)
+        for _ in range(self.num_trials)
+    ])
 
-    alt_machine1_ground, alt_machine2_ground = self.run_trial(
-        alt_sample,
-        self.ground_sampler,
-    )
+    alt_machine1_ground, alt_machine2_ground = np.transpose([
+        self.run_trial(alt_sample, self.ground_sampler)
+        for _ in range(self.num_trials)
+    ])
 
     self.sample_results[GroundStatTypes.M1_GT_NULL.value].append(
-        null_machine1_ground
+        self.trial_aggregator(null_machine1_ground)
     )
     self.sample_results[GroundStatTypes.M2_GT_NULL.value].append(
-        null_machine2_ground
+        self.trial_aggregator(null_machine2_ground)
     )
     self.sample_results[GroundStatTypes.M1_GT_ALT.value].append(
-        alt_machine1_ground
+        self.trial_aggregator(alt_machine1_ground)
     )
     self.sample_results[GroundStatTypes.M2_GT_ALT.value].append(
-        alt_machine2_ground
+        self.trial_aggregator(alt_machine2_ground)
     )
 
   def _get_test_set_results(
