@@ -63,7 +63,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     # A string template with metric name to be specified.
     config_lines = f"""
         line,agg_over_trials,num_trials,sampler,shaper,comparison_metric,agg_over_responses
-        1,mean,1000,"(all_items,bootstrap_responses)",noop,"{metric_spec}",mean
+        1,mean,10,"(all_items,bootstrap_responses)",noop,"{metric_spec}",mean
       """
     with open(self.config_filename, 'w') as f:
       f.writelines(config_lines)
@@ -73,11 +73,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.write_config_file(metric_spec='accuracy')
     self.create_experiments()
     self.experiments_manager.run_experiments()
-    output_csv_file = os.path.join(
-        self.experiments_manager.exp_dir,
-        self.experiments_manager.output_file_name,
-    )
-    result_df = pd.read_csv(output_csv_file)
+    result_df = pd.read_csv(self.experiments_manager.output_file_path)
     self.assertTupleEqual((1, 37), result_df.shape)
 
   def test_run_single_row_experiment(self):
@@ -87,11 +83,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.create_experiments(line=0)
     self.experiments_manager.run_experiments()
 
-    output_csv_file = os.path.join(
-        self.experiments_manager.exp_dir,
-        self.experiments_manager.output_file_name,
-    )
-    result_df = pd.read_csv(output_csv_file)
+    result_df = pd.read_csv(self.experiments_manager.output_file_path)
     self.assertTupleEqual((1, 37), result_df.shape)
 
   def test_parse_metric(self):

@@ -654,14 +654,15 @@ class ExperimentsManager:
       k_responses: Number of responses per item. Must be no greater than number
         of responses per items in the input_data dataset.
     """
-    self.exp_dir = exp_dir
-    self.n_items = n_items
     self.k_responses = k_responses
+    self.line = line
     line_str = "" if line == -1 else f"_line={line}"
-    self.output_file_name = (
+    file_name = (
         f"results_N={n_items}_K={k_responses}_{input_response_file}"
         f"{line_str}.csv"
     )
+    self.output_file_path = os.path.join(exp_dir, file_name)
+
     data_file = os.path.join(exp_dir, input_response_file)
     logging.info("Opening data file %s", data_file)
     start_time = datetime.datetime.now()
@@ -678,9 +679,9 @@ class ExperimentsManager:
     # Reduce the size for all the data arrays in response_data when the
     # response examples are over-generated.
     response_sets.truncate(n_items, k_responses)
-
     conversion_time = datetime.datetime.now() - conversion_start_time
     logging.info("Data conversion time=%f", conversion_time.total_seconds())
+    self.response_sets = response_sets
 
     config_file = os.path.join(exp_dir, "config/", config_file_name)
     logging.info("Opening config file %s", config_file)
@@ -692,21 +693,20 @@ class ExperimentsManager:
     self.e_grid[ParameterTypes.GT_SAMPLER.value] = self.e_grid[
         ParameterTypes.SAMPLER.value
     ]
-    self.alt_samples = response_sets.alt_data_list
-    self.null_samples = response_sets.null_data_list
-    self.line = line
-    self.elapsed_t = datetime.timedelta(0)
 
   def run_experiments(self):
     """Runs a collection of experiments."""
 
+    elapsed_t = datetime.timedelta(0)
     for row_idx, config_row in self.e_grid.iterrows():
       if self.line != -1 and row_idx != self.line:
         continue
 
       experiment = Experiment(config_row, self.k_responses)
       start_time = datetime.datetime.now()
-      results = experiment.run_experiment(self.alt_samples, self.null_samples)
+      results = experiment.run_experiment(
+          self.response_sets.alt_data_list, self.response_sets.null_data_list
+      )
       self.save_experiment_results(results, row_idx)
 
       compute_time = datetime.datetime.now() - start_time
@@ -715,13 +715,11 @@ class ExperimentsManager:
           row_idx,
           compute_time.total_seconds(),
       )
-      self.elapsed_t += compute_time
+      elapsed_t += compute_time
 
-    logging.info("Total compute time: %f", self.elapsed_t.total_seconds())
+    logging.info("Total compute time: %f", elapsed_t.total_seconds())
     # Write out the experiment results.
-    with open(
-        os.path.join(self.exp_dir, self.output_file_name), "wb"
-    ) as f:
+    with open(self.output_file_path, "wb") as f:
       self.e_grid.to_csv(f)
 
   def save_experiment_results(
