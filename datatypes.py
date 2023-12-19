@@ -89,8 +89,8 @@ class ResponseData:
     ):
       raise ValueError(
           f'Array shapes do not match: gold={response_data.gold.shape},'
-          ' preds1={response_data.preds1.shape},'
-          ' preds2={response_data.preds2.shape}'
+          f' preds1={response_data.preds1.shape},'
+          f' preds2={response_data.preds2.shape}'
       )
     return response_data
 
