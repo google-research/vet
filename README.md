@@ -20,7 +20,7 @@ It has three main components:
    in parallel, to save time.
 
 ## Usage
-###Example usage for response sample generation:
+### Example usage for response sample generation:
 
 python parameterized_sample.py --exp_dir=/data_dir/path --distortion=.02
 
@@ -42,7 +42,7 @@ second machine sample distribution relative to the human sample distribution.
 
 --use_pickle decides whether to save the sample data in pickle format. When set to false, the samples are saved in json format, which is more readable but less efficient in storage space.
 
-###Example usage for computing metrics over the generated samples:
+### Example usage for computing metrics over the generated samples:
 python response_resampler.py --exp_dir=/path/to/experiment/ --input_response_file=input_file_prefix --config_file=config.csv --line_num=45
 
 Where:
