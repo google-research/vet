@@ -12,24 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Code support for parameterized stochastic models for probabilistic response.
-
-This library supports the simulation of machine learning experiments in order
-to improve experimental design. The tools presented here can help answer
-questions such as:
-    + How many human annotators are needed in order to create
-      reliable gold standard test data?
-    + How many samples per prompt are needed in order to reliably distinguish
-      the performance of one generative model from another? How many prompts?
-    + What is the best way to measure "reliability"?
-
-This library provides stochastic parameterized **response grids** for
-    + Two stochastic response models, such as two machine-learning-based models,
-        say machine 1 and machine 2.
-    + One "true" stochastic model, say a crowd of human annotators.
-A typical use case involves evaluating the machine responses are against the
-human responses over a common set of items, so in simulations we need sample
-from all three models at the same time. This library does exactly that.
+Data types for the VET experiments.
 """
 
 import dataclasses
