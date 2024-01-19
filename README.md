@@ -29,8 +29,7 @@ Where:
 
 `--exp_dir` is the file path where the experiment input and output data are located.
 
-`--generator` is the type of random sample generator. Right now it supports 
-  either normal distribution generator (`ALT_DISTR_GEN`) or Likert normal distribution generator (`TOXICITY_DISTR_GEN`).
+`--generator` is the type of random sample generator. Right now it supports   either normal distribution generator (`ALT_DISTR_GEN`) or Likert normal distribution generator (`TOXICITY_DISTR_GEN`). A Likert normal distribution here refers to a normal distribution with the probability value thresholded to the closest (equispaced) interval corresponding to the Likert scale normalized between 0 and 1.
 
 `--distortion` is a floating point number controlling the amount of distribution generation error in the
 second machine sample distribution relative to the human sample distribution.
@@ -39,7 +38,7 @@ second machine sample distribution relative to the human sample distribution.
 
 `--k_responses` is the number of responses per item. They can be annotators responses for human results or machine responses for machine results.
 
-`--num_trials` is the number of trials per experiment. Each trial contains `n_items * k_responses` samples for human, machine1 and machine2 results.
+`--num_samples` is the number of sample sets per experiment. Each set contains `n_items * k_responses` samples for human, machine1 and machine2 results.
 
 `--use_pickle` decides whether to save the sample data in pickle format. When set to false, the samples are saved in json format, which is more readable but less efficient in storage space.
 

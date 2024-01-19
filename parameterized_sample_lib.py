@@ -294,7 +294,7 @@ def generate_response_tables(
     n_items: int = 1000,
     k_responses: int = 5,
     distortion: float = 0.3,
-    num_trials: int = 1000,
+    num_samples: int = 1000,
     alt_distr_generator: Callable[
         [int, float],
         Tuple[
@@ -312,7 +312,7 @@ def generate_response_tables(
     n_items: Number of items per set.
     k_responses: Number of responses/set
     distortion: Mean/variance distortion value.
-    num_trials: Number of samples of size n_items x k_responses.
+    num_samples: Number of samples of size n_items x k_responses.
     alt_distr_generator: Function that generates one <gold, machine1, machine2>
       response table set.
 
@@ -325,7 +325,7 @@ def generate_response_tables(
   responses_alt = []
   responses_null = []
 
-  for _ in range(num_trials):
+  for _ in range(num_samples):
     # Obtain response tables and results
     hum_h_distrs, mach1_h_distrs, mach2_h_distrs = alt_distr_generator(
         n_items, distortion

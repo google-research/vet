@@ -44,7 +44,7 @@ _CONFIG_FILE = flags.DEFINE_string(
 )
 _INPUT_RESPONSE_FILE = flags.DEFINE_string(
     "input_response_file",
-    "responses_simulated_distr_dist=0.3_gen_N=1000_K=5_n_samples=1000.json",
+    "responses_simulated_distr_dist=0.3_gen_N=1000_K=5_num_samples=1000.json",
     "File name in <exp_dir> containing the output of parameterized_sample to"
     "resample from.",
 )

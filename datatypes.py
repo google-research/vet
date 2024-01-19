@@ -79,7 +79,7 @@ class ResponseData:
 
 @dataclasses.dataclass
 class ResponseSets:
-  """Contains multiple trials of alternative and null hypothesis data.
+  """Contains multiple sets of alternative and null hypothesis data.
 
   alt_data_list:
     Contains experiment data for the alternative hypothesis.
@@ -87,10 +87,10 @@ class ResponseSets:
     Contains experiment data for the null hypothesis.
 
   The two lists should be of the same size. The size of the list represents
-  the number of trials of the experiment. Each trial should contain a variation
-  of the alernative and null hypothesis experiment data. When using simulated
-  data, gold, machine1 and machine2 should be from the same distribution across
-  trials.
+  the number of sample sets of the experiment. Each set should contain a
+  variation of the alernative and null hypothesis experiment data. When using
+  simulated data, gold, machine1 and machine2 should be from the same
+  distribution across sample sets.
 
   The alternative hypothesis assumes that machine2 responses have a different
   performance than machine1 responses w.r.t. gold data on some metric, while

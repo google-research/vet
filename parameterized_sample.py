@@ -60,8 +60,8 @@ _N_ITEMS = flags.DEFINE_integer(
 _K_RESPONSES = flags.DEFINE_integer(
     "k_responses", 5, "Number of responses per item."
 )
-_NUM_TRIALS = flags.DEFINE_integer(
-    "num_trials", 20, "Number of trial per experiment."
+_NUM_SAMPLES = flags.DEFINE_integer(
+    "num_samples", 20, "Number of sample sets per experiment."
 )
 _USE_PICKLE = flags.DEFINE_boolean(
     "use_pickle",
@@ -89,7 +89,7 @@ def main(argv: Sequence[str]) -> None:
       _N_ITEMS.value,
       _K_RESPONSES.value,
       _DISTORTION.value,
-      _NUM_TRIALS.value,
+      _NUM_SAMPLES.value,
       _GENERATOR.value,
   )
   elapsed_time = datetime.datetime.now() - generation_start_time
@@ -100,7 +100,7 @@ def main(argv: Sequence[str]) -> None:
       _EXP_DIR.value,
       f"responses_simulated_distr_dist={_DISTORTION.value}_gen_N="
       f"{_N_ITEMS.value}_K={_K_RESPONSES.value}"
-      f"_n_samples={_NUM_TRIALS.value}.{file_extension}",
+      f"_num_samples={_NUM_SAMPLES.value}.{file_extension}",
   )
   psample.write_samples_to_file(
       response_sets, output_filename, _USE_PICKLE.value
