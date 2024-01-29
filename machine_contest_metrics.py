@@ -526,7 +526,11 @@ def lower_wins(machine1: np.ndarray, machine2: np.ndarray) -> tuple[int, int]:
   # pylint: disable=arguments-out-of-order
   return higher_wins(machine2, machine1)
 
-def calculate_p_value(s_null: np.ndarray, s_alt: np.ndarray) -> float:
+def calculate_p_value(
+    s_null: np.ndarray,
+    s_alt: np.ndarray,
+    two_sided_test: bool = True,
+) -> float:
   """Compute the p-value for null and alternative hypothesis results.
 
   Provides a one-sided test with the assumption that alt distribution is biased
@@ -535,10 +539,16 @@ def calculate_p_value(s_null: np.ndarray, s_alt: np.ndarray) -> float:
   Args:
     s_null: A sequence of null hypothesis results.
     s_alt: A sequence of alt hypothesis results.
+    two_sided_test: Whether to test as two-sided/bidirectional (that is,
+        M1 > M2 OR M2 > M1)
 
   Returns:
     The p-value for the results.
   """
+  # Preprocessing for two-sided hypothesis test (ie, M1 > M2 OR M2 > M1).
+  if two_sided_test and (np.median(s_null) > np.median(s_alt)):
+    s_null, s_alt = -s_null, -s_alt
+
   s_null = sorted(s_null, reverse=True)
   s_alt = sorted(s_alt, reverse=True)
 

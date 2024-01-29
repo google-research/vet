@@ -253,7 +253,7 @@ class Experiment:
   def run_trial(
       self,
       response_data: datatypes.ResponseData,
-      sampler: Callable[[datatypes.ResponseData], np.ndarray],
+      sampler: Callable[[datatypes.ResponseData], datatypes.ResponseData],
   ) -> Tuple[float, float]:
     """Count the item wins for each system.
 
@@ -283,90 +283,77 @@ class Experiment:
 
     return self.metric(human_scores_t, machine1_scores_t, machine2_scores_t)
 
-  def _get_ground_trial_results(
+  def _get_parametric_bootstrap_results(
       self,
-      alt_sample: datatypes.ResponseData,
-      null_sample: datatypes.ResponseData,
+      alt_samples: list[datatypes.ResponseData],
+      null_samples: list[datatypes.ResponseData],
   ):
-    """Get the results of ground truth trials.
+    """Compute p-value via parametric bootstrapping to be used as ground truth.
 
     Args:
-      alt_sample: A ResponseData that contains responses for the alternative
-        hypothesis.
-      null_sample: A ResponseData that contains responses for the null
-        hypothesis.
+      alt_samples: ResponseData list of responses for the alt hypothesis.
+      null_samples: ResponseData list of responses for the null hypothesis.
     """
 
-    null_machine1_ground, null_machine2_ground = np.transpose([
-        self.run_trial(null_sample, self.ground_sampler)
-        for _ in range(self.num_trials)
+    ground_sampler = resample_items_and_responses_factory(all_items, noop)
+    null1_scores, null2_scores = np.transpose([
+        self.run_trial(null_sample, ground_sampler)
+        for null_sample in null_samples
+    ])
+    alt1_scores, alt2_scores = np.transpose([
+        self.run_trial(alt_sample, ground_sampler) for alt_sample in alt_samples
     ])
 
-    alt_machine1_ground, alt_machine2_ground = np.transpose([
-        self.run_trial(alt_sample, self.ground_sampler)
-        for _ in range(self.num_trials)
-    ])
+    self.sample_results[GroundStatTypes.M1_GT_NULL.value] = null1_scores
+    self.sample_results[GroundStatTypes.M2_GT_NULL.value] = null2_scores
+    self.sample_results[GroundStatTypes.M1_GT_ALT.value] = alt1_scores
+    self.sample_results[GroundStatTypes.M2_GT_ALT.value] = alt2_scores
 
-    self.sample_results[GroundStatTypes.M1_GT_NULL.value].append(
-        self.trial_aggregator(null_machine1_ground)
-    )
-    self.sample_results[GroundStatTypes.M2_GT_NULL.value].append(
-        self.trial_aggregator(null_machine2_ground)
-    )
-    self.sample_results[GroundStatTypes.M1_GT_ALT.value].append(
-        self.trial_aggregator(alt_machine1_ground)
-    )
-    self.sample_results[GroundStatTypes.M2_GT_ALT.value].append(
-        self.trial_aggregator(alt_machine2_ground)
-    )
-
-  def _get_test_set_results(
+  def _get_nonparametric_bootstrap_results(
       self,
       alt_sample: datatypes.ResponseData,
   ):
-    """Run tests and add results to _sample_results.
+    """Run bootstrap tests and add results to _sample_results.
 
     Args:
       alt_sample: A ResponseData that contains responses for the alternative
         hypothesis.
     """
 
-    machine1_wins_per_trial, machine2_wins_per_trial = np.transpose([
+    # Compute scores for alternative hypothesis test.
+    alt1_scores, alt2_scores = np.transpose([
         self.run_trial(alt_sample, self.sampler) for _ in range(self.num_trials)
     ])
 
-    # Now construct a null hypothesis and test
+    # Construct null hypothesis data by pooling alt samples and compute scores.
     null_responses = np.concatenate(
         [alt_sample.preds1, alt_sample.preds2], axis=1
     )
     null_test = datatypes.ResponseData(
         alt_sample.gold, null_responses, null_responses
     )
-    null1_score, null2_score = np.transpose([
+    null1_scores, null2_scores = np.transpose([
         self.run_trial(null_test, self.sampler) for _ in range(self.num_trials)
     ])
 
-    alt_test_diff = machine1_wins_per_trial - machine2_wins_per_trial
-    null_test_diff = null1_score - null2_score
-    if np.median(null_test_diff) > np.median(alt_test_diff):
-      alt_test_diff = -alt_test_diff
-      null_test_diff = -null_test_diff
+    alt_test_diffs = alt1_scores - alt2_scores
+    null_test_diffs = null1_scores - null2_scores
 
     machine1_trial_wins, machine2_trial_wins = mcm.higher_wins(
-        machine1_wins_per_trial, machine2_wins_per_trial
+        alt1_scores, alt2_scores
     )
 
     self.sample_results[TestStatTypes.M1_SCORE.value].append(
-        self.trial_aggregator(machine1_wins_per_trial)
+        self.trial_aggregator(alt1_scores)
     )
     self.sample_results[TestStatTypes.M1_SCORE_STD.value].append(
-        np.std(machine1_wins_per_trial)
+        np.std(alt1_scores)
     )
     self.sample_results[TestStatTypes.M2_SCORE.value].append(
-        self.trial_aggregator(machine2_wins_per_trial)
+        self.trial_aggregator(alt2_scores)
     )
     self.sample_results[TestStatTypes.M2_SCORE_STD.value].append(
-        np.std(machine2_wins_per_trial)
+        np.std(alt2_scores)
     )
     self.sample_results[TestStatTypes.M1_TRIAL_WINS.value].append(
         machine1_trial_wins
@@ -375,19 +362,19 @@ class Experiment:
         machine2_trial_wins
     )
     self.sample_results[TestStatTypes.EST_P_SCORE.value].append(
-        mcm.calculate_p_value(null_test_diff, alt_test_diff)
+        mcm.calculate_p_value(null_test_diffs, alt_test_diffs)
     )
     self.sample_results[TestStatTypes.ALT_SCORE_DIFFS_TEST_MEAN.value].append(
-        np.mean(alt_test_diff)
+        np.mean(alt_test_diffs)
     )
     self.sample_results[TestStatTypes.NULL_SCORE_DIFFS_TEST_MEAN.value].append(
-        np.mean(null_test_diff)
+        np.mean(null_test_diffs)
     )
     self.sample_results[TestStatTypes.ALT_SCORE_DIFFS_TEST_STD.value].append(
-        np.std(alt_test_diff)
+        np.std(alt_test_diffs)
     )
     self.sample_results[TestStatTypes.NULL_SCORE_DIFFS_TEST_STD.value].append(
-        np.std(null_test_diff)
+        np.std(null_test_diffs)
     )
 
   def _aggregate_experiment_results(self) -> Mapping[str, float]:
@@ -402,10 +389,6 @@ class Experiment:
     null_ground_diff = np.array(
         self.sample_results[GroundStatTypes.M1_GT_NULL.value]
     ) - np.array(self.sample_results[GroundStatTypes.M2_GT_NULL.value])
-
-    if np.median(null_ground_diff) > np.median(alt_ground_diff):
-      null_ground_diff = -null_ground_diff
-      alt_ground_diff = -alt_ground_diff
 
     self.sample_results[GroundStatTypes.ALT_SCORE_DIFFS_GT.value] = (
         alt_ground_diff
@@ -518,7 +501,7 @@ class Experiment:
         "f1_score": mcm.f1_score,
         "auc": mcm.auc,
     }
-    response_aggregators = {"mean": np.mean, "noop": noop}
+    response_aggregators = {"mean": np.mean, "median": np.median, "noop": noop}
     shapers = {
         "noop": noop,
         "vectorize": vectorize,
@@ -619,10 +602,11 @@ class Experiment:
     """
     self.sample_results = collections.defaultdict(list)
 
-    for alt_sample, null_sample in zip(alt_samples, null_samples):
-      self._get_test_set_results(alt_sample)
+    # Compute estimated p-value and other experiment stats.
+    self._get_nonparametric_bootstrap_results(alt_samples[0])
 
-      self._get_ground_trial_results(alt_sample, null_sample)
+    # Compute "ground-truth" p-value and other experiment stats.
+    self._get_parametric_bootstrap_results(alt_samples, null_samples)
 
     return self._aggregate_experiment_results()
 

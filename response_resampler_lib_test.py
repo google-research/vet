@@ -46,7 +46,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     k_responses = 5
     self.experiments_manager = resampler_lib.ExperimentsManager(
         exp_dir=self.out_dir.full_path,
-        input_response_file=self.data_filename,
+        input_response_file='output.pkl',
         use_pickle=True,
         line=line,
         config_file_name=self.config_filename,
@@ -99,7 +99,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
 
   @mock.patch('machine_contest_metrics.recall')
   def test_parse_recall_with_thresholds(self, mock_recall):
-    self.write_config_file(metric_spec='recall(ht=0.5,mt1=0.6,mt2=0.7)')
+    self.write_config_file(metric_spec='recall(ht=0.5, mt1=0.6, mt2=0.7)')
 
     self.create_experiments()
     human_data, machine1_data, machine2_data = np.array([[0.5], [0.6], [0.7]])

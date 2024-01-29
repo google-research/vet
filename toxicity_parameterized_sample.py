@@ -105,7 +105,7 @@ def generate_toxicity_data_responses(
   with open(file, "rt") as f:
     all_df = pd.read_csv(f)
 
-  df = all_df.sample(_NUM_SAMPLES.value)
+  df = all_df.sample(_N_ITEMS.value)
   # Values here are divided by 5 because responses were originally from 0 to 4.
   # This scales them to 0 to .8, which makes them easier to compare to the
   # datasets generated without the toxicity dataset.
@@ -152,6 +152,10 @@ def generate_toxicity_data_responses(
 def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
+  input_filename = os.path.join(_EXP_DIR.value, "inputs", _INPUT.value)
+  if not os.path.exists(input_filename):
+    raise ValueError(f"Path {input_filename} does not exist!")
+
   # Set random seeds for deterministic data generation.
   if _RANDOM_SEED.value:
     rand.seed(_RANDOM_SEED.value)
@@ -179,9 +183,8 @@ def main(argv: Sequence[str]) -> None:
   # synthetically, we use a special generator tailored to the dataset to
   # generate them.
   toxicity_start_time = datetime.datetime.now()
-  response_sets = generate_toxicity_data_responses(
-      os.path.join(_EXP_DIR.value, "inputs", _INPUT.value), response_sets
-  )
+  response_sets = generate_toxicity_data_responses(input_filename,
+                                                   response_sets)
   elapsed_time = datetime.datetime.now() - toxicity_start_time
   logging.info("Toxicity data generation time=%f", elapsed_time.total_seconds())
 
