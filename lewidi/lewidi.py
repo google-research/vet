@@ -20,6 +20,22 @@ def norm_optimizer(x, *args):
     ret = scipy.stats.norm.pdf(x, loc=m1 ,scale=s1)
     return ret
 
+def bi_norm_optimizer(x, *args):
+    """A cover function for fitting the binormal distribution.
+
+    Args:
+        x: the data to fit.
+        args: the two paramaters (expected value and standard
+            deviation) of the normal distribution being fitted.
+    
+    Returns:
+        The probabilit(ies) associated with the given input.
+    """
+    m1, m2, s1, s2, k = args
+    ret = k*scipy.stats.norm.pdf(x, loc=m1 ,scale=s1)
+    ret += (1-k)*scipy.stats.norm.pdf(x, loc=m2 ,scale=s2)
+    return ret
+
 def bounded_sample(mean, std, range, size):
     """Sample from [0,1] via a normal distribution.
 
@@ -41,8 +57,6 @@ def bounded_sample(mean, std, range, size):
         sample_items.append(sample_of_one[0])
     return sample_items 
 
-params = [.5, 1]
-
 def get_dists(vals):
 	"""Return the binned distribution of vals.
 
@@ -61,11 +75,7 @@ def get_dists(vals):
 	y = [int(min(i-1, len(counts)-1)) for i in y]
 	return [counts[i]/len(vals) for i in y]
 
-
-f = open('HS-Brexit_test.json')
-f = open('HS-Brexit_train.json')
-
-def analyze(f, params):
+def analyze(f, params, generator, bounds):
 	train = json.load(f)
 	annotations = [ 
 		i['annotations'] for k,i in train.items()
@@ -78,14 +88,14 @@ def analyze(f, params):
 	plt.show()
 
 	plt.plot(mus, mu_counts, 'o')
-	plt.show()
-	mu_fitted_params,_ = scipy.optimize.curve_fit(norm_optimizer, mus, mu_counts, p0=params)
+	#plt.show()
+	mu_fitted_params,_ = scipy.optimize.curve_fit(generator, mus, mu_counts, p0=params, bounds=bounds)
 	if len(mu_fitted_params) == 2:
 		print("Parameters for mean: m: %f, s: %f" % tuple(mu_fitted_params))
 	else:
-		print("Parameters for mean: m1: %f, m2: %f, s1: %f, s2: %f, k1: %f, k2: %f" % tuple(mu_fitted_params))
+		print("Parameters for mean: m1: %f, m2: %f, s1: %f, s2: %f, k: %f" % tuple(mu_fitted_params))
 	xx = np.linspace(np.min(mus), np.max(mus), 1000)
-	plt.plot(xx, norm_optimizer(xx, *mu_fitted_params))
+	plt.plot(xx, generator(xx, *mu_fitted_params))
 	plt.show()
 
 
@@ -94,14 +104,13 @@ def analyze(f, params):
 	plt.show()
 
 	plt.plot(stdevs, stdev_counts, 'o')
-	plt.show()
-	std_fitted_params,_ = scipy.optimize.curve_fit(norm_optimizer, mus, stdev_counts, p0=params)
+	#plt.show()
+	std_fitted_params,_ = scipy.optimize.curve_fit(generator, mus, stdev_counts, p0=params, bounds=bounds)
 	if len(std_fitted_params) == 2:
 		print("Parameters for std: m: %f, s: %f" % tuple(std_fitted_params))
 	else:
-		print("Parameters for std: m1: %f, m2: %f, s1: %f, s2: %f, k1: %f, k2: %f" % tuple(std_fitted_params))
+		print("Parameters for std: m1: %f, m2: %f, s1: %f, s2: %f, k: %f" % tuple(std_fitted_params))
 	xx = np.linspace(np.min(stdevs), np.max(stdevs), 1000)
-	plt.plot(xx, norm_optimizer(xx, *std_fitted_params))
+	plt.plot(xx, generator(xx, *std_fitted_params))
 	plt.show()
 
-analyze(f, params)

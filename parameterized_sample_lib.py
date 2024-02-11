@@ -45,28 +45,54 @@ import numpy as np
 
 import datatypes
 
-def bounded_sample(
+def norm_bounded_sample(
   mean: float,
   std: float,
-  range: Tuple[float, float]
+  bound: Tuple[float, float]
 ):
     """Sample from [0,1] via a normal distribution.
 
-     Vars:
-        mean: The mean of the normal distribution to sample from.
-        std: The standard deviation of the distribution to sample from.
-    range: an tuple containing upper and lower bounds within which
-      the sample must be contained.
+    Vars:
+      mean: The mean of the normal distribution to sample from.
+      std: The standard deviation of the distribution to sample from.
+      range: an tuple containing upper and lower bounds within which
+        the sample must be contained.
     Returns:
         A size "size" sample, as a list.
     """
-    lower, upper = range
+    lower, upper = bound
     sample_of_one = scipy.stats.norm.rvs(loc=mean, scale=std, size=1)
     while ((sample_of_one < lower) or (sample_of_one > upper)):
       sample_of_one = scipy.stats.norm.rvs(loc=mean, scale=std, size=1)
     return sample_of_one[0]
  
+def bi_norm_bounded_sample(
+  mean1: float,
+  std1: float,
+  mean2: float,
+  std2: float,
+  mixture: float,
+  bounds: Tuple[float, float]
+):
+    """Sample from [0,1] via a binormal distribution.
 
+    Vars:
+      mean1: The mean of the first normal distribution to sample from.
+      std1: The standard deviation of the first distribution to sample from.
+      mean2: The mean of the second normal distribution to sample from.
+      std2: The standard deviation of the second distribution to sample from.
+      mixture: The likelihood of choosing the first distirbution.
+      bounds: an tuple containing upper and lower bounds within which
+        the sample must be contained.
+    Returns:
+        A size "size" sample, as a list.
+    """
+    mixture_sample = rand.random()
+    if mixture_sample < mixture:
+      return norm_bounded_sample(mean1, std1, bounds)
+    else:
+      return norm_bounded_sample(mean2, std2, bounds)
+ 
 def toxicity_mean_dist() -> float:
   """Return the mean of a toxicity human rater distribution.
 
@@ -88,26 +114,6 @@ def toxicity_stdev_dist() -> float:
     below.
   """
   return clamp(np.random.default_rng().triangular(-0.06, 0.21, 0.45))
-
-def hs_brexit_mean_dist() -> float:
-  """Return the mean of an hs_brexit human rater distribution.
-
-  For use with the toxicity dataset.
-
-  Returns:
-    The value accoring to the fitted parameters.
-  """
-  return bounded_sample(-0.338555, 0.281887, (0,1))
-
-def hs_brexit_stdev_dist() -> float:
-  """Return the standard deviation of an hs_brexit human rater distribution.
-
-  For use with the toxicity dataset.
-
-  Returns:
-    The value accoring to the fitted parameters.
-  """
-  return bounded_sample(-0.278259, 0.181938, (0,1))
 
 def clamp(num: float, min_value: float = 0.0, max_value: float = 1.0) -> float:
   """Clamp clamp num to be between min/max by clipping.
@@ -376,8 +382,104 @@ def hs_brexit_distr_gen(
     n, and corresponds to 1 of 2 machine responses, or a human response.
   """
   return gen_alt_h_distrs_norm(
-      hs_brexit_mean_dist,
-      hs_brexit_stdev_dist,
+      lambda: norm_bounded_sample(-0.338555, 0.281887, (0,1)),
+      lambda: norm_bounded_sample(-0.278259, 0.181938, (0,1)),
+      n,
+      alt_distortion=distortion,
+      h_dist=binary_norm_dist,
+  )
+
+def armis_distr_gen(
+    n: int, distortion: float
+) -> Tuple[
+    List[Callable[[], float]],
+    List[Callable[[], float]],
+    List[Callable[[], float]],
+]:
+  """Generates a number alternative distribution triples.
+
+  This specific generator is based on the ArMIS dataset, part
+  of the Learning with Disagreement challenge (le-wi-di),
+  https://le-wi-di.github.io/
+
+  Data is located here:
+  https://github.com/Le-Wi-Di/le-wi-di.github.io/blob/main/data_post-competition.zip
+  Args:
+    n: The number of triples to generate. It is the number of items in a
+      simulated response set.
+    distortion: the distortion value.
+
+  Returns:
+    A 3-tuple of lists of distribution functions. Each list is of length
+    n, and corresponds to 1 of 2 machine responses, or a human response.
+  """
+  return gen_alt_h_distrs_norm(
+      lambda: bi_norm_bounded_sample(-0.431138, 0.390359, 1.072018, 0.439225, 0.734355, (0,1)),
+      lambda: bi_norm_bounded_sample(0.112583, 0.414730, 1.029311, 0.452902, 0.688484, (0,1)),
+      n,
+      alt_distortion=distortion,
+      h_dist=binary_norm_dist,
+  )
+
+def convabuse_distr_gen(
+    n: int, distortion: float
+) -> Tuple[
+    List[Callable[[], float]],
+    List[Callable[[], float]],
+    List[Callable[[], float]],
+]:
+  """Generates a number alternative distribution triples.
+
+  This specific generator is based on the ConvAbuse dataset, part
+  of the Learning with Disagreement challenge (le-wi-di),
+  https://le-wi-di.github.io/
+
+  Data is located here:
+  https://github.com/Le-Wi-Di/le-wi-di.github.io/blob/main/data_post-competition.zip
+  Args:
+    n: The number of triples to generate. It is the number of items in a
+      simulated response set.
+    distortion: the distortion value.
+
+  Returns:
+    A 3-tuple of lists of distribution functions. Each list is of length
+    n, and corresponds to 1 of 2 machine responses, or a human response.
+  """
+  return gen_alt_h_distrs_norm(
+      lambda: norm_bounded_sample(1.124694, 0.512993, (0,1)),
+      lambda: norm_bounded_sample(0.410264, 0.630285, (0,1)),
+      n,
+      alt_distortion=distortion,
+      h_dist=binary_norm_dist,
+  )
+
+def md_agreement_distr_gen(
+    n: int, distortion: float
+) -> Tuple[
+    List[Callable[[], float]],
+    List[Callable[[], float]],
+    List[Callable[[], float]],
+]:
+  """Generates a number alternative distribution triples.
+
+  This specific generator is based on the ConvAbuse dataset, part
+  of the Learning with Disagreement challenge (le-wi-di),
+  https://le-wi-di.github.io/
+
+  Data is located here:
+  https://github.com/Le-Wi-Di/le-wi-di.github.io/blob/main/data_post-competition.zip
+  Args:
+    n: The number of triples to generate. It is the number of items in a
+      simulated response set.
+    distortion: the distortion value.
+
+  Returns:
+    A 3-tuple of lists of distribution functions. Each list is of length
+    n, and corresponds to 1 of 2 machine responses, or a human response.
+  """
+  return gen_alt_h_distrs_norm(
+      lambda: norm_bounded_sample(-0.500000, 1.000000, (0,1)),
+      lambda: norm_bounded_sample(-0.122087, 1.000000, (0,1)),
       n,
       alt_distortion=distortion,
       h_dist=binary_norm_dist,
@@ -563,3 +665,27 @@ class GeneratorType(enum.Enum):
           List[Callable[[], float]],
       ],
   ] = functools.partial(hs_brexit_distr_gen)
+  ArMIS_DISTR_GEN:  Callable[
+      [int],
+      Tuple[
+          List[Callable[[], float]],
+          List[Callable[[], float]],
+          List[Callable[[], float]],
+      ],
+  ] = functools.partial(armis_distr_gen)
+  ConvAbuse_GEN:  Callable[
+      [int],
+      Tuple[
+          List[Callable[[], float]],
+          List[Callable[[], float]],
+          List[Callable[[], float]],
+      ],
+  ] = functools.partial(convabuse_distr_gen)
+  MD_Agreement_GEN:  Callable[
+      [int],
+      Tuple[
+          List[Callable[[], float]],
+          List[Callable[[], float]],
+          List[Callable[[], float]],
+      ],
+  ] = functools.partial(md_agreement_distr_gen)
