@@ -2,6 +2,7 @@ import pandas as pd
 from absl import app
 from absl import flags
 from typing import Sequence
+#import pdb
 
 _K_RESPONSES = flags.DEFINE_integer(
     "k_responses", 5, "Number of responses per item."
@@ -20,13 +21,15 @@ def main(argv: Sequence[str]) -> None:
 		intermediate_table = pd.DataFrame()
 		intermediate_table['$\\Delta$'] = (experiment_results['M2 GT Alt'] - experiment_results['M1 GT Alt']).abs()
 		intermediate_table['p-value'] = experiment_results['GT_Pvalue']
-		intermediate_table['Metric'] = ['$\\Gamma_{MAE}$', '$\\Gamma_{MEMD}$', '$\\Gamma_{WINS}$']
+		intermediate_table['Metric'] = ['$\\Gamma_{\\rm MAE}$', '$\\Gamma_{\\rm MEMD}$', '$\\Gamma_{\\rm WINS}$']
 		intermediate_table[f'$\\epsilon$'] = distortion
 		final_table = pd.concat([final_table, intermediate_table])
 	#final_table = final_table.pivot(index='$\\epsilon$', columns='Metric')
 	final_table = final_table.melt(["Metric", "$\\epsilon$"]).sort_values(by=["Metric","variable"]).pivot(index = "$\\epsilon$", columns=["Metric","variable"])
 	final_table = final_table.reset_index(drop=True)
+	final_table.columns = pd.MultiIndex.from_tuples([(j,k) for i,j,k in final_table.columns])
 	print(final_table.to_latex(index=False))
+	#pdb.set_trace()
 
 if __name__ == "__main__":
   app.run(main)
