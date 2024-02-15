@@ -1,0 +1,9 @@
+    python parameterized_sample.py --generator alt_distr_gen --n_items=25 --k_responses=100 --num_samples=1000 --distortion=${d} --exp_dir=        
+    python parameterized_sample.py --generator alt_distr_gen --n_items=100 --k_responses=25 --num_samples=1000 --distortion=${d} --exp_dir=
+    python parameterized_sample.py --generator alt_distr_gen --n_items=500 --k_responses=5 --num_samples=1000 --distortion=${d} --exp_dir=
+    python parameterized_sample.py --generator alt_distr_gen --n_items=50 --k_responses=100 --num_samples=1000 --distortion=${d} --exp_dir=
+    python parameterized_sample.py --generator alt_distr_gen --n_items=1000 --k_responses=5 --num_samples=1000 --distortion=${d} --exp_dir=
+    python parameterized_sample.py --generator alt_distr_gen --n_items=100 --k_responses=100 --num_samples=1000 --distortion=${d} --exp_dir=
+    python parameterized_sample.py --generator alt_distr_gen --n_items=1000 --k_responses=10 --num_samples=1000 --distortion=${d} --exp_dir=
+    python parameterized_sample.py --generator alt_distr_gen --n_items=100 --k_responses=100 --num_samples=1000 --distortion=${d} --exp_dir=
+    python parameterized_sample.py --generator alt_distr_gen --n_items=1000 --k_responses=10 --num_samples=1000 --distortion=${d} --exp_dir=
