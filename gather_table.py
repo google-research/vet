@@ -28,6 +28,8 @@ def main(argv: Sequence[str]) -> None:
 	final_table = final_table.melt(["Metric", "$\\epsilon$"]).sort_values(by=["Metric","variable"]).pivot(index = "$\\epsilon$", columns=["Metric","variable"])
 	final_table = final_table.reset_index(drop=True)
 	final_table.columns = pd.MultiIndex.from_tuples([(j,k) for i,j,k in final_table.columns])
+	#final_table = final_table.style.format(precision=4)
+
 	print(final_table.to_latex(index=False))
 	#pdb.set_trace()
 

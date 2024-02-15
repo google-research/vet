@@ -75,7 +75,7 @@ def get_dists(vals):
 	y = [int(min(i-1, len(counts)-1)) for i in y]
 	return [counts[i]/len(vals) for i in y]
 
-def analyze(f, params, generator, bounds):
+def analyze(f, params, generator, bounds, file_name):
 	train = json.load(f)
 	annotations = [ 
 		i['annotations'] for k,i in train.items()
@@ -83,7 +83,9 @@ def analyze(f, params, generator, bounds):
 	annotations = [[int(i) for i in a.split(',')] for a in annotations]
 	mus = sorted([np.mean(i) for i in annotations])
 	stdevs = sorted([np.std(i) for i in annotations])
+	analyze2(mus, stdevs, params, generator, bounds, file_name)
 
+def analyze2(mus, stdevs, params, generator, bounds, file_name):
 	mu_counts = get_dists(mus)
 	plt.show()
 
@@ -97,6 +99,7 @@ def analyze(f, params, generator, bounds):
 	xx = np.linspace(np.min(mus), np.max(mus), 1000)
 	plt.plot(xx, generator(xx, *mu_fitted_params))
 	plt.show()
+	plt.savefig(f"{file_name}_mean.pdf")
 
 
 	plt.clf()
@@ -105,7 +108,7 @@ def analyze(f, params, generator, bounds):
 
 	plt.plot(stdevs, stdev_counts, 'o')
 	#plt.show()
-	std_fitted_params,_ = scipy.optimize.curve_fit(generator, mus, stdev_counts, p0=params, bounds=bounds)
+	std_fitted_params,_ = scipy.optimize.curve_fit(generator, stdevs, stdev_counts, p0=params, bounds=bounds)
 	if len(std_fitted_params) == 2:
 		print("Parameters for std: m: %f, s: %f" % tuple(std_fitted_params))
 	else:
@@ -113,4 +116,6 @@ def analyze(f, params, generator, bounds):
 	xx = np.linspace(np.min(stdevs), np.max(stdevs), 1000)
 	plt.plot(xx, generator(xx, *std_fitted_params))
 	plt.show()
+	plt.savefig(f"{file_name}_std.pdf")
+
 

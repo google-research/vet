@@ -357,7 +357,7 @@ def toxicity_distr_gen(
       h_dist=likert_norm_dist,
   )
 
-def hs_brexit_distr_gen(
+def amazon_distr_gen(
     n: int, distortion: float
 ) -> Tuple[
     List[Callable[[], float]],
@@ -366,12 +366,8 @@ def hs_brexit_distr_gen(
 ]:
   """Generates a number alternative distribution triples.
 
-  This specific generator is based on the HS_Brexit dataset, part
-  of the Learning with Disagreement challenge (le-wi-di),
-  https://le-wi-di.github.io/
+  This specific generator is based on the amazon ratings dataset.
 
-  Data is located here:
-  https://github.com/Le-Wi-Di/le-wi-di.github.io/blob/main/data_post-competition.zip
   Args:
     n: The number of triples to generate. It is the number of items in a
       simulated response set.
@@ -382,11 +378,11 @@ def hs_brexit_distr_gen(
     n, and corresponds to 1 of 2 machine responses, or a human response.
   """
   return gen_alt_h_distrs_norm(
-      lambda: norm_bounded_sample(-0.338555, 0.281887, (0,1)),
-      lambda: norm_bounded_sample(-0.278259, 0.181938, (0,1)),
+      lambda: norm_bounded_sample(0.552121, 0.032093, (0,1)),
+      lambda: norm_bounded_sample(0.318177, 0.018281, 0.409315, (0,1)),
       n,
       alt_distortion=distortion,
-      h_dist=binary_norm_dist,
+      h_dist=likert_norm_dist,
   )
 
 def armis_distr_gen(
@@ -414,8 +410,8 @@ def armis_distr_gen(
     n, and corresponds to 1 of 2 machine responses, or a human response.
   """
   return gen_alt_h_distrs_norm(
-      lambda: bi_norm_bounded_sample(-0.431138, 0.390359, 1.072018, 0.439225, 0.734355, (0,1)),
-      lambda: bi_norm_bounded_sample(0.112583, 0.414730, 1.029311, 0.452902, 0.688484, (0,1)),
+      lambda: bi_norm_bounded_sample(-0.430701, 0.418148, 1.194010, 0.525248, 0.652561, (0,1)),
+      lambda: bi_norm_bounded_sample(-0.264113, 0.530150, 0.362404, 0.632262, 0.766390, (0,1)),
       n,
       alt_distortion=distortion,
       h_dist=binary_norm_dist,
@@ -447,7 +443,39 @@ def convabuse_distr_gen(
   """
   return gen_alt_h_distrs_norm(
       lambda: norm_bounded_sample(1.124694, 0.512993, (0,1)),
-      lambda: norm_bounded_sample(0.410264, 0.630285, (0,1)),
+      lambda: norm_bounded_sample(-0.324344, 0.417337, (0,1)),
+      n,
+      alt_distortion=distortion,
+      h_dist=binary_norm_dist,
+  )
+
+def hs_brexit_distr_gen(
+    n: int, distortion: float
+) -> Tuple[
+    List[Callable[[], float]],
+    List[Callable[[], float]],
+    List[Callable[[], float]],
+]:
+  """Generates a number alternative distribution triples.
+
+  This specific generator is based on the HS_Brexit dataset, part
+  of the Learning with Disagreement challenge (le-wi-di),
+  https://le-wi-di.github.io/
+
+  Data is located here:
+  https://github.com/Le-Wi-Di/le-wi-di.github.io/blob/main/data_post-competition.zip
+  Args:
+    n: The number of triples to generate. It is the number of items in a
+      simulated response set.
+    distortion: the distortion value.
+
+  Returns:
+    A 3-tuple of lists of distribution functions. Each list is of length
+    n, and corresponds to 1 of 2 machine responses, or a human response.
+  """
+  return gen_alt_h_distrs_norm(
+      lambda: norm_bounded_sample(-0.338555, 0.281887, (0,1)),
+      lambda: norm_bounded_sample(-0.341252, 0.409315, (0,1)),
       n,
       alt_distortion=distortion,
       h_dist=binary_norm_dist,
@@ -479,7 +507,7 @@ def md_agreement_distr_gen(
   """
   return gen_alt_h_distrs_norm(
       lambda: norm_bounded_sample(-0.500000, 1.000000, (0,1)),
-      lambda: norm_bounded_sample(-0.122087, 1.000000, (0,1)),
+      lambda: norm_bounded_sample(-0.392347, 0.850241, (0,1)),
       n,
       alt_distortion=distortion,
       h_dist=binary_norm_dist,
@@ -657,6 +685,14 @@ class GeneratorType(enum.Enum):
           List[Callable[[], float]],
       ],
   ] = functools.partial(toxicity_distr_gen)
+  AMAZON_DISTR_GEN: Callable[
+      [int],
+      Tuple[
+          List[Callable[[], float]],
+          List[Callable[[], float]],
+          List[Callable[[], float]],
+      ],
+  ] = functools.partial(amazon_distr_gen)
   HS_BREXIT_DISTR_GEN:  Callable[
       [int],
       Tuple[
