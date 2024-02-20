@@ -34,9 +34,6 @@ import collections
 import datetime
 import enum
 import functools
-import json
-import os
-import pickle
 import random as rand
 import re
 from typing import Any, Callable, Mapping, Tuple
@@ -615,61 +612,30 @@ class ExperimentsManager:
 
   def __init__(
       self,
-      exp_dir: str,
-      input_response_file: str,
-      use_pickle: bool,
-      line: int,
-      config_file_name: str,
-      n_items: int,
+      response_sets: datatypes.ResponseSets,
+      config_file_path: str,
+      config_line_num: int,
       k_responses: int,
+      output_file_path: str,
   ):
     """Initializer for ExperimentsManager class.
 
     Args:
-      exp_dir: The base path for the input and configuration files.
-      input_response_file: The input file of response data from the true
-        distribution.
-      use_pickle: If true decode the data file using pickle format.
-      line: The line of the configuration file to run (to facilitate parallel
-        execution), or -1 to run all of them.
-      config_file_name: The name of the configuration file.
-      n_items: Number of items per response set. Must be no greater than the
-        number of items in the input_data datasets.
+      response_sets: The simulated response data sets.
+      config_file_path: The path of the configuration file.
+      config_line_num: The line of the configuration file to run (to facilitate
+        parallel execution), or -1 to run all of them.
       k_responses: Number of responses per item. Must be no greater than number
         of responses per items in the input_data dataset.
+      output_file_path: The path of the output result file.
     """
-    self.k_responses = k_responses
-    self.line = line
-    line_str = "" if line == -1 else f"_line={line}"
-    file_name = (
-        f"results_N={n_items}_K={k_responses}_{input_response_file}"
-        f"{line_str}.csv"
-    )
-    self.output_file_path = os.path.join(exp_dir, file_name)
-
-    data_file = os.path.join(exp_dir, input_response_file)
-    logging.info("Opening data file %s", data_file)
-    start_time = datetime.datetime.now()
-    open_mode = "rb" if use_pickle else "r"
-    with open(data_file, open_mode) as f:
-      response_sets_dict = pickle.load(f) if use_pickle else json.load(f)
-
-    response_sets = datatypes.ResponseSets.from_dict(response_sets_dict)
-    logging.info("finished loading")
-    loading_time = datetime.datetime.now() - start_time
-    logging.info("File loading time=%f", loading_time.total_seconds())
-
-    conversion_start_time = datetime.datetime.now()
-    # Reduce the size for all the data arrays in response_data when the
-    # response examples are over-generated.
-    response_sets.truncate(n_items, k_responses)
-    conversion_time = datetime.datetime.now() - conversion_start_time
-    logging.info("Data conversion time=%f", conversion_time.total_seconds())
     self.response_sets = response_sets
+    self.line = config_line_num
+    self.k_responses = k_responses
+    self.output_file_path = output_file_path
 
-    config_file = os.path.join(exp_dir, "config/", config_file_name)
-    logging.info("Opening config file %s", config_file)
-    with open(config_file, "r") as f:
+    logging.info("Opening config file %s", config_file_path)
+    with open(config_file_path, "r") as f:
       self.e_grid = pd.read_csv(f)
 
     # The grouth-truth sampler is set to be same as the regular sampler,

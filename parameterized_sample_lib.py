@@ -31,6 +31,7 @@ A typical use case involves evaluating the machine responses are against the
 human responses over a common set of items, so in simulations we need sample
 from all three models at the same time. This library does exactly that.
 """
+
 import datetime
 import enum
 import functools
@@ -41,7 +42,6 @@ from typing import Any, Callable, List, Tuple
 
 from absl import logging
 import numpy as np
-
 import datatypes
 
 def toxicity_mean_dist() -> float:
@@ -217,9 +217,7 @@ def null_hypothesis_generator(
 
   return null_dist
 
-def alt_distr_gen(
-    n: int, distortion: float = 0.3
-) -> Tuple[
+def alt_distr_gen(n: int, distortion: float = 0.3) -> Tuple[
     List[Callable[[], float]],
     List[Callable[[], float]],
     List[Callable[[], float]],
@@ -261,9 +259,7 @@ def likert_norm_dist(mean: float, std: float, rate: int = 5) -> float:
   x = int(x * rate) / rate
   return x if x < 1 else (rate - 1) / rate
 
-def toxicity_distr_gen(
-    n: int, distortion: float
-) -> Tuple[
+def toxicity_distr_gen(n: int, distortion: float) -> Tuple[
     List[Callable[[], float]],
     List[Callable[[], float]],
     List[Callable[[], float]],
@@ -341,8 +337,10 @@ def generate_response_tables(
     ]
 
     gold_null, preds1_null, preds2_null = sample_h(
-        hum_h_distrs, mach_null_h_distrs, mach_null_h_distrs,
-        resps_per_item=k_responses
+        hum_h_distrs,
+        mach_null_h_distrs,
+        mach_null_h_distrs,
+        resps_per_item=k_responses,
     )
 
     responses_alt.append(
@@ -414,6 +412,25 @@ def norm_generator(
 
   fn.__name__ = f"gen_alt_h_distrs_norm({min_mean_str},{max_mean},{min_std},{max_std_str},{dist_str})"
   return fn
+
+def read_samples_from_file(
+    input_filename: str,
+    use_pickle: bool,
+) -> datatypes.ResponseSets:
+  """Reads the sample data sets from a file.
+
+  Args:
+    input_filename: The input filename.
+    use_pickle: If true use pickle to deserialize data. Otherwise use json.
+
+  Returns:
+    The loaded datasets.
+  """
+  open_mode = "rb" if use_pickle else "r"
+  with open(input_filename, open_mode) as f:
+    response_sets_dict = pickle.load(f) if use_pickle else json.load(f)
+
+  return datatypes.ResponseSets.from_dict(response_sets_dict)
 
 def write_samples_to_file(
     response_sets: datatypes.ResponseSets,

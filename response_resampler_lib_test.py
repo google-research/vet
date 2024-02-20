@@ -32,9 +32,8 @@ class ResponseResamplerLibTest(absltest.TestCase):
     super().setUp()
     # Create a response data file.
     self.out_dir = self.create_tempdir()
-    self.data_filename = self.out_dir.create_file('output.pkl')
-    datasets = psample.generate_response_tables(10, 5, 0.3, 2)
-    psample.write_samples_to_file(datasets, self.data_filename, use_pickle=True)
+    self.datasets = psample.generate_response_tables(10, 5, 0.3, 2)
+    self.output_file_path = os.path.join(self.out_dir, 'output.csv')
 
     # Create the experiment config file.
     self.config_filename = self.out_dir.create_file(
@@ -45,13 +44,11 @@ class ResponseResamplerLibTest(absltest.TestCase):
     # Create an experiment manager and an experiment.
     k_responses = 5
     self.experiments_manager = resampler_lib.ExperimentsManager(
-        exp_dir=self.out_dir.full_path,
-        input_response_file='output.pkl',
-        use_pickle=True,
-        line=line,
-        config_file_name=self.config_filename,
-        n_items=20,
-        k_responses=k_responses,
+        self.datasets,
+        self.config_filename,
+        line,
+        k_responses,
+        self.output_file_path,
     )
 
     config_row = self.experiments_manager.e_grid.iloc[0]
@@ -73,7 +70,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.write_config_file(metric_spec='accuracy')
     self.create_experiments()
     self.experiments_manager.run_experiments()
-    result_df = pd.read_csv(self.experiments_manager.output_file_path)
+    result_df = pd.read_csv(self.output_file_path)
     self.assertTupleEqual((1, 37), result_df.shape)
 
   def test_run_single_row_experiment(self):
@@ -83,7 +80,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.create_experiments(line=0)
     self.experiments_manager.run_experiments()
 
-    result_df = pd.read_csv(self.experiments_manager.output_file_path)
+    result_df = pd.read_csv(self.output_file_path)
     self.assertTupleEqual((1, 37), result_df.shape)
 
   def test_parse_metric(self):

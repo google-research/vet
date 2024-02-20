@@ -36,10 +36,12 @@ class ResponseData:
   preds2: np.ndarray
 
   def truncate(self, n_items: int, k_responses: int):
-    """Trims the arrays down to size n*k."""
-    self.gold = self.gold[:n_items, :k_responses]
-    self.preds1 = self.preds1[:n_items, :k_responses]
-    self.preds2 = self.preds2[:n_items, :k_responses]
+    """Trims the arrays down to size n_items*k_responses if necessary."""
+    array_shape = self.gold.shape
+    if n_items < array_shape[0] or k_responses < array_shape[1]:
+      self.gold = self.gold[:n_items, :k_responses]
+      self.preds1 = self.preds1[:n_items, :k_responses]
+      self.preds2 = self.preds2[:n_items, :k_responses]
 
   def to_dict(self) -> dict[str, Any]:
     """Converts the data fields to a dictionary."""
