@@ -17,6 +17,8 @@ Tests machine_contest_metrics.
 
 from typing import Any, Callable
 
+from google3.testing.pybase import parameterized
+
 from absl.testing import absltest
 import numpy as np
 import datatypes
@@ -80,7 +82,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 0.1], [1.0, 1.0], [0.6, 0.5]],
         [[1, 0], [1, 0], [0, 1]],
     ])
-
     expected_linear_results = [[0.5, 0.5], [0, 0], [1, 0]]
     self.metric_helper(
         machine_contest_metrics.accuracy,
@@ -94,7 +95,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 0.1], [1.0, 1.0], [0.6, 0.5]],
         [[1, 0], [1, 0], [0, 1]],
     ])
-
     expected_linear_results = [[1.0, 0.0], [0, 0], [1, 0]]
     self.metric_helper(
         machine_contest_metrics.accuracy,
@@ -109,7 +109,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 1], [0.1, 1], [0.6, 0.5]],
         [[1, 0], [1, 0], [0, 1]],
     ])
-
     expected_linear_results = [[0.25, 0.0], [1.0, 0.5], [1.0, 0.0]]
     self.metric_helper(
         machine_contest_metrics.auc,
@@ -132,13 +131,12 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_emd_aggregated(self):
-    expected_linear_results = [[0.4, 0.4], [0.0, 0.0], [0.4, 0.4]]
-
     linear_responses = format_data([
         [[0.1, 0.1], [0.2, 0.8], [0.3, 0.7]],
         [[0, 0.1], [1.0, 1.0], [0.5, 0.5]],
         [[1, 0], [0, 0], [1, 1]],
     ])
+    expected_linear_results = [[0.4, 0.4], [0.0, 0.0], [0.4, 0.4]]
     self.metric_helper(
         lambda x, y, z: machine_contest_metrics.emd_aggregated(x, y, z, 5),
         expected_linear_results,
@@ -146,15 +144,30 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_mean_of_emds(self):
-    expected_linear_results = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
-
     linear_responses = format_data([
         [[0.1, 0.1], [0.2, 0.8], [0.3, 0.7]],
         [[0, 0.1], [1.0, 1.0], [0.5, 0.5]],
         [[1, 0], [0, 0], [1, 1]],
     ])
+    expected_linear_results = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
     self.metric_helper(
         lambda x, y, z: machine_contest_metrics.mean_of_emds(x, y, z, 5),
+        expected_linear_results,
+        linear_responses,
+    )
+
+  def test_mean_relative_entropy(self):
+    linear_responses = format_data([
+        [[[0.1, 0.2, 0.2, 0.3, 0.3, 0.3]],
+         [[0.1, 0.2, 0.2, 0.3, 0.3, 0.3]],
+         [[0.1, 0.1, 0.2, 0.3, 0.3, 0.3]]],
+        [[[0.1, 0.2, 0.2, 0.3, 0.3, 0.3]],
+         [[0.1, 0.1, 0.2, 0.2, 0.3, 0.3]],
+         [[0.1, 0.2, 0.2, 0.3, 0.3, 0.3]]],
+    ])
+    expected_linear_results = [[0.0, 0.16666], [0.13835, 0.0]]
+    self.metric_helper(
+        machine_contest_metrics.mean_relative_entropy,
         expected_linear_results,
         linear_responses,
     )
@@ -192,7 +205,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 0], [0, 0], [0, 0]],
         [[1, 1], [1, 1], [1, 1]],
     ])
-
     expected_linear_results = [
         [0.1, 0.2],
         [0.0, 0.0],
@@ -211,7 +223,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 1], [0.1, 1], [0.6, 0.5]],
         [[1, 0], [1, 0], [0, 1]],
     ])
-
     expected_linear_results = [[0.5, 0], [1, 0.5], [1, 0]]
     self.metric_helper(
         machine_contest_metrics.precision,
@@ -226,7 +237,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 0], [0, 0], [0, 0]],
         [[1, 1], [1, 1], [1, 1]],
     ])
-
     expected_linear_results = [[2, 0], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.wins_mae,
@@ -240,7 +250,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 0], [0, 0], [0, 0]],
         [[1, 1], [1, 1], [1, 1]],
     ])
-
     expected_linear_results = [[0.1, 0.2], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.mean_absolute_error,
@@ -254,7 +263,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 0], [0, 0], [0, 0]],
         [[1, 1], [1, 1], [1, 1]],
     ])
-
     expected_linear_results = [[0.1, 0.2], [0, 0], [0, 0]]
     self.metric_helper(
         machine_contest_metrics.max_absolute_error,
@@ -273,7 +281,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0.1, 0.9], [0.2, 0.9], [0.1, 0.9]],
         [[0.1, 0.9], [0.2, 0.95], [0.7, 0.6]],
     ])
-
     expected_results = [[0.03763, 0.0], [0.00468, 0.0], [0.01023, 0.03763]]
     self.metric_helper(
         machine_contest_metrics.kld_of_means, expected_results, linear_responses
@@ -285,9 +292,7 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0.1, 0.9], [0.2, 0.9], [0.1, 0.9]],
         [[0.1, 0.9], [0.2, 0.95], [0.7, 0.6]],
     ])
-
     expected_results = [[1.19861, 0.46523], [0.15342, 0.0], [0.15417, 2.06311]]
-
     self.metric_helper(
         machine_contest_metrics.mean_kld, expected_results, linear_responses
     )
@@ -298,7 +303,6 @@ class MachineContestMetricsTest(absltest.TestCase):
         [[0, 1], [0.1, 1], [0.6, 0.5]],
         [[1, 0], [1, 0], [0, 1]],
     ])
-
     expected_linear_results = [[0.5, 0], [1, 1], [1, 0]]
     self.metric_helper(
         machine_contest_metrics.recall,
@@ -308,12 +312,12 @@ class MachineContestMetricsTest(absltest.TestCase):
     )
 
   def test_spearmanr(self):
-    expected_linear_results = [[1, 1], [1, 1], [1, -1]]
     linear_responses = format_data([
         [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]],
         [[0.1, 0.9], [0.1, 0.9], [0.1, 0.9]],
         [[0.1, 0.9], [0.2, 0.95], [0.7, 0.6]],
     ])
+    expected_linear_results = [[1, 1], [1, 1], [1, -1]]
     self.metric_helper(
         machine_contest_metrics.spearmanr,
         expected_linear_results,
@@ -370,6 +374,32 @@ class MachineContestMetricsTest(absltest.TestCase):
     self.assertAlmostEqual(mean, 999.0 / 2.0, places=2)
     self.assertEqual(lower_quantile, 25)
     self.assertEqual(upper_quantile, 975)
+
+class MetricsTests(parameterized.TestCase):
+  @parameterized.named_parameters(
+      dict(testcase_name='mean_relative_entropy:machine1_zero_entropy',
+           fn=machine_contest_metrics.mean_relative_entropy,
+           gold=[[0.1, 0.2, 0.2, 0.3, 0.3, 0.3]],
+           machine1=[[0.1, 0.2, 0.2, 0.3, 0.3, 0.3]],
+           machine2=[[0.1, 0.1, 0.2, 0.3, 0.3, 0.3]],
+           expected=[0.0, 0.16666]),
+      dict(testcase_name='mean_relative_entropy:machine2_zero_entropy',
+           fn=machine_contest_metrics.mean_relative_entropy,
+           gold=[[0.1, 0.2, 0.2, 0.3, 0.3, 0.3]],
+           machine1=[[0.1, 0.1, 0.2, 0.2, 0.3, 0.3]],
+           machine2=[[0.1, 0.2, 0.2, 0.3, 0.3, 0.3]],
+           expected=[0.13835, 0.0]),
+  )
+  def test_metric_function(
+      self,
+      fn: Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray],
+      gold: list[list[float]],
+      machine1: list[list[float]],
+      machine2: list[list[float]],
+      expected: list[float],
+  ):
+    result = fn(np.asarray(gold), np.asarray(machine1), np.asarray(machine2))
+    self.assertTrue(np.allclose(result, expected, atol=10e-04))
 
 if __name__ == '__main__':
   absltest.main()

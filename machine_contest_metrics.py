@@ -24,13 +24,14 @@ compared to a third.
 import math
 
 import numpy as np
-from scipy import spatial
-from scipy import stats
-from sklearn import metrics
+import scipy.spatial
+import scipy.stats
+import sklearn.metrics
 
 def binarize(scores: np.ndarray, threshold: float) -> np.ndarray:
   return np.where(scores < threshold, 0, 1)
 
+# the others below.
 def accuracy(
     human: np.ndarray,
     machine1: np.ndarray,
@@ -60,8 +61,8 @@ def accuracy(
   human = binarize(human, ht)
 
   return (
-      metrics.accuracy_score(human, binarize(machine1, mt1)),
-      metrics.accuracy_score(human, binarize(machine2, mt2)),
+      sklearn.metrics.accuracy_score(human, binarize(machine1, mt1)),
+      sklearn.metrics.accuracy_score(human, binarize(machine2, mt2)),
   )
 
 def auc(
@@ -92,8 +93,8 @@ def auc(
   human = binarize(human, ht)
 
   return (
-      metrics.roc_auc_score(human, binarize(machine1, mt1)),
-      metrics.roc_auc_score(human, binarize(machine2, mt2)),
+      sklearn.metrics.roc_auc_score(human, binarize(machine1, mt1)),
+      sklearn.metrics.roc_auc_score(human, binarize(machine2, mt2)),
   )
 
 def cos_distance(
@@ -112,8 +113,8 @@ def cos_distance(
   """
   human = human.flatten()
   return (
-      spatial.distance.cosine(human, machine1.flatten()),
-      spatial.distance.cosine(human, machine2.flatten()),
+      scipy.spatial.distance.cosine(human, machine1.flatten()),
+      scipy.spatial.distance.cosine(human, machine2.flatten()),
   )
 
 def emd_aggregated(
@@ -124,9 +125,9 @@ def emd_aggregated(
   Distributions must first be aggregated across responses per item.
 
   Args:
-    human: An array of human responses.
-    machine1: An array of machine responses.
-    machine2: An array of responses from another machine.
+    human: A 2D array of human responses.
+    machine1: A 2D array of machine responses.
+    machine2: A 2D array of responses from another machine.
     bins: The number of bins to use.
 
   Returns:
@@ -140,8 +141,8 @@ def emd_aggregated(
   )
 
   return (
-      stats.wasserstein_distance(freq_machine1, freq_human),
-      stats.wasserstein_distance(freq_machine2, freq_human),
+      scipy.stats.wasserstein_distance(freq_machine1, freq_human),
+      scipy.stats.wasserstein_distance(freq_machine2, freq_human),
   )
 
 def mean(
@@ -152,9 +153,9 @@ def mean(
   Note: human scores is not being used.
 
   Args:
-    human: A list of human scores.
-    machine1: A list of machine scores.
-    machine2: Another list of machine scores.
+    human: A 2D array of human scores.
+    machine1: A 2D array of machine scores.
+    machine2: A 2D array of machine scores.
 
   Returns:
     A pair of mean scores for machines 1 and 2 respectively.
@@ -168,17 +169,17 @@ def root_mean_squared_error(
   """Compute (L2) root mean squared error relative to human labels.
 
   Args:
-    human: An array of human responses.
-    machine1: An array of machine responses.
-    machine2: An array of responses from another machine.
+    human: A 2D array of human responses.
+    machine1: A 2D array of machine responses.
+    machine2: A 2D array of responses from another machine.
 
   Returns:
     A 2-tuple of the root mean squared error between one machine and the
     human responses, and of the other machine at the human responses.
   """
   return (
-      metrics.mean_squared_error(human, machine1, squared=False),
-      metrics.mean_squared_error(human, machine2, squared=False),
+      sklearn.metrics.mean_squared_error(human, machine1, squared=False),
+      sklearn.metrics.mean_squared_error(human, machine2, squared=False),
   )
 
 def f1_score(
@@ -195,9 +196,9 @@ def f1_score(
   so we use short names for them.
 
   Args:
-    human: An array of human responses.
-    machine1: An array of machine responses.
-    machine2: An array of responses from another machine.
+    human: A 2D array of human responses.
+    machine1: A 2D array of machine responses.
+    machine2: A 2D array of responses from another machine.
     ht: The positive score threshold for human.
     mt1: The positive score threshold for machine1.
     mt2: The positive score threshold for machine2.
@@ -209,8 +210,8 @@ def f1_score(
   """
   human = binarize(human, ht)
   return (
-      metrics.f1_score(human, binarize(machine1, mt1)),
-      metrics.f1_score(human, binarize(machine2, mt2)),
+      sklearn.metrics.f1_score(human, binarize(machine1, mt1)),
+      sklearn.metrics.f1_score(human, binarize(machine2, mt2)),
   )
 
 def precision(
@@ -241,8 +242,8 @@ def precision(
   human = binarize(human, ht)
 
   return (
-      metrics.precision_score(human, binarize(machine1, mt1)),
-      metrics.precision_score(human, binarize(machine2, mt2)),
+      sklearn.metrics.precision_score(human, binarize(machine1, mt1)),
+      sklearn.metrics.precision_score(human, binarize(machine2, mt2)),
   )
 
 def recall(
@@ -272,8 +273,8 @@ def recall(
   """
   human = binarize(human, ht)
   return (
-      metrics.recall_score(human, binarize(machine1, mt1)),
-      metrics.recall_score(human, binarize(machine2, mt2)),
+      sklearn.metrics.recall_score(human, binarize(machine1, mt1)),
+      sklearn.metrics.recall_score(human, binarize(machine2, mt2)),
   )
 
 def wins_mae(
@@ -320,9 +321,9 @@ def mean_absolute_error(
   """Compute (L1) itemwise distance mean.
 
   Args:
-    human: An array of human responses.
-    machine1: An array of machine responses.
-    machine2: An array of responses from another machine.
+    human: A 2D array of human responses.
+    machine1: A 2D array of machine responses.
+    machine2: A 2D array of responses from another machine.
 
   Returns:
     A 2-tuple of the itemwise distance mean between one machine and the human
@@ -336,9 +337,9 @@ def max_absolute_error(
   """Compute (L_infinity) itemwise maximum distance.
 
   Args:
-    human: An array of human responses.
-    machine1: An array of machine responses.
-    machine2: An array of responses from another machine.
+    human: A 2D array of human responses.
+    machine1: A 2D array of machine responses.
+    machine2: A 2D array of responses from another machine.
 
   Returns:
     A 2-tuple of the itemwise max distance between one machine and the human
@@ -365,8 +366,10 @@ def itemwise_emds(
   compares earth movers distance (emd) between corresponding items in
   the human responses and each of machine 1 and 2's responses.
   """
-  scores1 = [stats.wasserstein_distance(x, y) for x, y in zip(human, machine1)]
-  scores2 = [stats.wasserstein_distance(x, y) for x, y in zip(human, machine2)]
+  scores1 = [scipy.stats.wasserstein_distance(x, y)
+             for x, y in zip(human, machine1)]
+  scores2 = [scipy.stats.wasserstein_distance(x, y)
+             for x, y in zip(human, machine2)]
   return scores1, scores2
 
 def kld(observed_mean: float, predicted_mean: float) -> float:
@@ -453,9 +456,9 @@ def mean_of_emds(
   Mean is over all items, EMD is across responses per item.
 
   Args:
-    human: An array of human responses.
-    machine1: An array of machine responses.
-    machine2: An array of responses from another machine.
+    human: A 2D array of human responses.
+    machine1: A 2D array of machine responses.
+    machine2: A 2D array of responses from another machine.
     bins: The number of bins to use.
 
   Returns:
@@ -469,23 +472,50 @@ def mean_of_emds(
   scores1, scores2 = itemwise_emds(freq_human, freq_scores1, freq_scores2)
   return np.mean(scores1), np.mean(scores2)
 
+def mean_relative_entropy(
+    human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray,
+    bins: int = 100,
+) -> tuple[float, float]:
+  """Computes the average per-item KL divergence of machine to human labels.
+
+  Args:
+    human: A 2D array of human responses.
+    machine1: A 2D array of machine responses.
+    machine2: A 2D array of responses from another machine.
+    bins: The number of bins to use.
+
+  Returns:
+    A 2-tuple of the D_KL(machine1, human), D_KL(machine2, human).
+  """
+  def histogram1d(x):
+    return np.histogram(x, bins=bins, range=[0, 1])[0]
+
+  human_freqs = np.apply_along_axis(func1d=histogram1d, axis=1, arr=human)
+  machine1_freqs = np.apply_along_axis(func1d=histogram1d, axis=1, arr=machine1)
+  machine2_freqs = np.apply_along_axis(func1d=histogram1d, axis=1, arr=machine2)
+  machine1_kl = scipy.stats.entropy(
+      pk=machine1_freqs, qk=human_freqs, base=2, axis=1)
+  machine2_kl = scipy.stats.entropy(
+      pk=machine2_freqs, qk=human_freqs, base=2, axis=1)
+  return np.mean(machine1_kl), np.mean(machine2_kl)
+
 def spearmanr(
     human: np.ndarray, machine1: np.ndarray, machine2: np.ndarray
 ) -> tuple[float, float]:
   """Compute spearman ranking correlation.
 
   Args:
-    human: An array of human responses.
-    machine1: An array of machine responses.
-    machine2: An array of responses from another machine.
+    human: A 2D array of human responses.
+    machine1: A 2D array of machine responses.
+    machine2: A 2D array of responses from another machine.
 
   Returns:
     A 2-tuple of the spearman ranking between one machine and the human
     responses, and of the other machine at the human responses.
   """
   return (
-      stats.spearmanr(human, machine1)[0],
-      stats.spearmanr(human, machine2)[0],
+      scipy.stats.spearmanr(human, machine1)[0],
+      scipy.stats.spearmanr(human, machine2)[0],
   )
 
 def higher_wins(machine1: np.ndarray, machine2: np.ndarray) -> tuple[int, int]:
