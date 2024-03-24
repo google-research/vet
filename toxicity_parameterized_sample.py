@@ -112,9 +112,8 @@ def generate_toxicity_data_responses(
   toxicity_data = (
       df[["score_0", "score_1", "score_2", "score_3", "score_4"]].to_numpy() / 5
   )
-
-  human_means = df["mean"] / 5
-  human_stdev = df["stdev"] / 5
+  human_means = np.mean(toxicity_data, axis=1)
+  human_stdev = np.std(toxicity_data, axis=1, ddof=1)
   mac1_h_distrs = [
       psample.norm_distr_factory(mean, dev, psample.likert_norm_dist)
       for mean, dev in zip(human_means, human_stdev)

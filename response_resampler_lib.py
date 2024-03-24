@@ -34,7 +34,6 @@ import collections
 import datetime
 import enum
 import functools
-import random as rand
 import re
 from typing import Any, Callable, Mapping, Tuple
 
@@ -108,6 +107,93 @@ class AggStatTypes(TypesEnumBase):
 
 main_stats = TestStatTypes.value_list() + GroundStatTypes.basic_stat_values()
 
+################################################################################
+
+class ItemSamplers:
+  """Item-level sampling functions."""
+
+  def __init__(self, seed: int | None = None) -> None:
+    self.reset_seed(seed=seed)
+
+  def reset_seed(self, seed: int | None = None) -> None:
+    self.rng = np.random.default_rng(seed=seed)
+
+  def all_items(
+      self, response_data: datatypes.ResponseData) -> datatypes.ResponseData:
+    """Take all items from each dataset in their original order."""
+    return response_data
+
+  def resample_items(
+      self, response_data: datatypes.ResponseData) -> datatypes.ResponseData:
+    """Sample with replacement item indices and apply to each dataset."""
+    human_data = response_data.gold
+    num_items = len(human_data)
+    indices = self.rng.integers(low=0, high=num_items, size=num_items)
+    human_scores_t = np.take(human_data, indices, axis=0)
+    machine1_scores_t = np.take(response_data.preds1, indices, axis=0)
+    machine2_scores_t = np.take(response_data.preds2, indices, axis=0)
+    return datatypes.ResponseData(
+        human_scores_t, machine1_scores_t, machine2_scores_t
+    )
+
+class ResponseSamplers:
+  """Response-level sampling functions."""
+
+  def __init__(self, seed: int | None = None) -> None:
+    self.reset_seed(seed=seed)
+
+  def reset_seed(self, seed: int | None = None) -> None:
+    self.rng = np.random.default_rng(seed=seed)
+
+  def resample_responses(
+      self, n_items: int, k_responses: int, domain_size: int,
+      matrix: np.ndarray) -> np.ndarray:
+    """Randomly sample response indices *with* replacement."""
+    domain_size = k_responses if domain_size == -1 else domain_size
+    indices = self.rng.integers(
+        low=0, high=domain_size, size=[n_items, k_responses])
+    return np.take_along_axis(matrix, indices, axis=1)
+
+  def sample_responses(
+      self, n_items: int, k_responses: int, domain_size: int,
+      matrix: np.ndarray) -> np.ndarray:
+    """Randomly sample response indices *without* replacement."""
+    all_responses = self.sample_all_responses(
+        n_items, k_responses, domain_size, matrix)
+    return all_responses[:, :k_responses]
+
+  def sample_one_response(
+      self, n_items: int, k_responses: int, domain_size: int,
+      matrix: np.ndarray) -> np.ndarray:
+    """Randomly sample one response index."""
+    del k_responses  # unused
+    return self.resample_responses(
+        n_items=n_items, k_responses=1, domain_size=domain_size, matrix=matrix)
+
+  def take_first_response(
+      self, n_items: int, k_responses: int, domain_size: int,
+      matrix: np.ndarray) -> np.ndarray:
+    """Take first response index from each item."""
+    del k_responses, domain_size  # unused
+    return np.reshape(matrix[:, 0], newshape=[n_items, 1])
+
+  def take_all_responses(
+      self, n_items: int, k_responses: int, domain_size: int,
+      matrix: np.ndarray) -> np.ndarray:
+    """Take all responses in their original order."""
+    del n_items, k_responses, domain_size  # unused
+    return matrix
+
+  def sample_all_responses(
+      self, n_items: int, k_responses: int, domain_size: int,
+      matrix: np.ndarray) -> np.ndarray:
+    """Randomly sample all response indices without replacement."""
+    domain_size = k_responses if domain_size == -1 else domain_size
+    del k_responses  # unused
+    orig_matrix = np.tile(np.arange(domain_size), reps=[n_items, 1])
+    indices = np.apply_along_axis(self.rng.permutation, axis=1, arr=orig_matrix)
+    return np.take_along_axis(matrix, indices, axis=1)
+
 def noop(x: Any) -> Any:
   """Return input.
 
@@ -124,58 +210,18 @@ def noop(x: Any) -> Any:
 
 ##############################################
 # Shaper functions
-
-def vectorize(matrix: np.ndarray[Any, np.dtype]) -> np.ndarray[int, np.dtype]:
+##############################################
+def flatten_matrix(matrix: np.ndarray[Any, np.dtype]) -> np.ndarray[
+    int,
+    np.dtype,
+]:
   """Return a flattened matrix."""
   return matrix.flatten()
 
-##############################################
-# Sampler functions: for responses
-
-def first_response(responses: np.ndarray) -> np.ndarray:
-  """Returns the first item of a vector or list as a one-element list."""
-  return np.array([responses[0]])
-
-def sample_responses(k_responses: int) -> Callable[[np.ndarray], np.ndarray]:
-  """Bootstrap sample from a set of responses."""
-  func = lambda x: (rand.choices(x, k=k_responses))
-  return func
-
-def sample_all(responses: np.ndarray) -> np.ndarray:
-  """Bootstrap sample from all responses per item."""
-  return np.array(rand.sample(responses, k=len(responses)))
-
-def sample_ground_responses(
-    k_responses: int,
-) -> Callable[[np.ndarray], np.ndarray]:
-  """Sample without replacement from ground truth data."""
-  func = lambda x: (rand.choices(list(x), k=k_responses))
-  return func
-
-################################################
-# item_samplers
-
-def all_items(response_data: datatypes.ResponseData) -> datatypes.ResponseData:
-  """Take all items from each dataset."""
-  return response_data
-
-def bootstrap_items(
-    response_data: datatypes.ResponseData,
-) -> datatypes.ResponseData:
-  """Bootstrap sample from the items in each dataset."""
-  human = response_data.gold
-  indices = rand.choices(range(len(human)), k=len(human))
-  human_scores_t = np.take(human, indices, axis=0)
-  machine1_scores_t = np.take(response_data.preds1, indices, axis=0)
-  machine2_scores_t = np.take(response_data.preds2, indices, axis=0)
-  return datatypes.ResponseData(
-      human_scores_t, machine1_scores_t, machine2_scores_t
-  )
-
-def resample_items_and_responses(
+def select_items_and_responses(
     response_data: datatypes.ResponseData,
     item_sampler: Callable[[datatypes.ResponseData], datatypes.ResponseData],
-    response_sampler: Callable[[np.ndarray], np.ndarray],
+    response_sampler: Callable[[int, int, int, np.ndarray], np.ndarray],
 ) -> datatypes.ResponseData:
   """Construct a 2D bootstrap sample across three datasets.
 
@@ -189,24 +235,22 @@ def resample_items_and_responses(
     where the sampled items across all three datasets are the same.
   """
   sampled_response_data = item_sampler(response_data)
-  human = sampled_response_data.gold
-  machine1 = sampled_response_data.preds1
-  machine2 = sampled_response_data.preds2
-  if len(machine1[0]) > len(human[0]):
-    machine1 = [sample_responses(len(human[0]))(x) for x in machine1]
-    machine2 = [sample_responses(len(human[0]))(x) for x in machine2]
+  human_data = sampled_response_data.gold
+  machine1_data = sampled_response_data.preds1
+  machine2_data = sampled_response_data.preds2
 
-  human = [response_sampler(x) for x in human]
-  machine1 = [response_sampler(x) for x in machine1]
-  machine2 = [response_sampler(x) for x in machine2]
+  num_rows, num_cols = human_data.shape
+  # Do independent random sampling for human/machine1/machine2 responses.
+  human_sample = response_sampler(num_rows, num_cols, num_cols, human_data)
+  machine1_sample = response_sampler(
+      num_rows, num_cols, machine1_data.shape[1], machine1_data)
+  machine2_sample = response_sampler(
+      num_rows, num_cols, machine2_data.shape[1], machine2_data)
+  return datatypes.ResponseData(human_sample, machine1_sample, machine2_sample)
 
-  return datatypes.ResponseData(
-      np.array(human), np.array(machine1), np.array(machine2)
-  )
-
-def resample_items_and_responses_factory(
+def select_items_and_responses_factory(
     item_sampler: Callable[[datatypes.ResponseData], datatypes.ResponseData],
-    response_sampler: Callable[[np.ndarray], np.ndarray],
+    response_sampler: Callable[[int, int, int, np.ndarray], np.ndarray],
 ) -> Callable[[datatypes.ResponseData], datatypes.ResponseData]:
   """Construct a 2D bootstrap sampler across three datasets.
 
@@ -215,11 +259,11 @@ def resample_items_and_responses_factory(
     response_sampler: The method for sampling responses.
 
   Returns:
-    A curried instance of resample_items_and_responses, with the item_sampler
+    A curried instance of select_items_and_responses, with the item_sampler
     and response_sampler arguments fixed.
   """
   # pylint: disable=g-long-lambda
-  return lambda response_data: resample_items_and_responses(
+  return lambda response_data: select_items_and_responses(
       response_data, item_sampler, response_sampler
   )
 
@@ -235,6 +279,8 @@ class Experiment:
       k_responses: Number of responses per item. Must be no greater than number
         of responses per items in the input_data dataset.
     """
+    self.item_samplers = ItemSamplers()
+    self.response_samplers = ResponseSamplers()
     self.k_responses = k_responses
     exp_config = self.setup_experiment(config_row)
     self.metric = exp_config[ParameterTypes.COMPARISON_METRIC.value]
@@ -262,7 +308,7 @@ class Experiment:
       sampler: Determines how items from the args above are sampled.
 
     Returns:
-      A set of pairs for every horizontal metric with wins/ties/losses
+      A set of pairs (w.r.t. machine1, machine2) for every horizontal metric.
     """
     sampled_response_data = sampler(response_data)
     human_scores_t = sampled_response_data.gold
@@ -292,13 +338,13 @@ class Experiment:
       null_samples: ResponseData list of responses for the null hypothesis.
     """
 
-    ground_sampler = resample_items_and_responses_factory(all_items, noop)
     null1_scores, null2_scores = np.transpose([
-        self.run_trial(null_sample, ground_sampler)
+        self.run_trial(null_sample, self.ground_sampler)
         for null_sample in null_samples
     ])
     alt1_scores, alt2_scores = np.transpose([
-        self.run_trial(alt_sample, ground_sampler) for alt_sample in alt_samples
+        self.run_trial(alt_sample, self.ground_sampler)
+        for alt_sample in alt_samples
     ])
 
     self.sample_results[GroundStatTypes.M1_GT_NULL.value] = null1_scores
@@ -490,6 +536,7 @@ class Experiment:
         "spearmanr": mcm.spearmanr,
         "emd_agg": mcm.emd_aggregated,
         "mean_of_emds": mcm.mean_of_emds,
+        "kl_divergence": mcm.mean_relative_entropy,
         "mean": mcm.mean,
         "cos_distance": mcm.cos_distance,
         "accuracy": mcm.accuracy,
@@ -501,59 +548,74 @@ class Experiment:
     response_aggregators = {"mean": np.mean, "median": np.median, "noop": noop}
     shapers = {
         "noop": noop,
-        "vectorize": vectorize,
+        "flatten": flatten_matrix,
     }
+
     samplers = {
-        "(all_items,bootstrap_responses)": resample_items_and_responses_factory(
-            all_items, sample_responses(self.k_responses)
+        "(all_items,bootstrap_responses)": select_items_and_responses_factory(
+            self.item_samplers.all_items,
+            self.response_samplers.resample_responses
         ),
-        "(all_items,one_response)": resample_items_and_responses_factory(
-            all_items, sample_responses(1)
+        "(all_items,one_response)": select_items_and_responses_factory(
+            self.item_samplers.all_items,
+            self.response_samplers.take_first_response
         ),
-        "(all_items,all_responses)": resample_items_and_responses_factory(
-            all_items, noop
+        "(all_items,all_responses)": select_items_and_responses_factory(
+            self.item_samplers.all_items,
+            self.response_samplers.take_all_responses
         ),
         "(bootstrap_items,bootstrap_responses)": (
-            resample_items_and_responses_factory(
-                bootstrap_items, sample_responses(self.k_responses)
+            select_items_and_responses_factory(
+                self.item_samplers.resample_items,
+                self.response_samplers.resample_responses
             )
         ),
-        "(bootstrap_items,all_responses)": resample_items_and_responses_factory(
-            bootstrap_items, noop
+        "(bootstrap_items,all_responses)": select_items_and_responses_factory(
+            self.item_samplers.resample_items,
+            self.response_samplers.take_all_responses
         ),
-        "(bootstrap_items,one_response)": resample_items_and_responses_factory(
-            bootstrap_items, sample_responses(1)
+        "(bootstrap_items,one_response)": select_items_and_responses_factory(
+            self.item_samplers.resample_items,
+            self.response_samplers.sample_one_response
         ),
         "(bootstrap_items,first_response)": (
-            resample_items_and_responses_factory(
-                bootstrap_items, first_response
+            select_items_and_responses_factory(
+                self.item_samplers.resample_items,
+                self.response_samplers.take_first_response
             )
         ),
     }
     ground_samplers = {
-        "(all_items,bootstrap_responses)": resample_items_and_responses_factory(
-            all_items, sample_ground_responses(self.k_responses)
+        "(all_items,bootstrap_responses)": select_items_and_responses_factory(
+            self.item_samplers.all_items,
+            self.response_samplers.sample_responses
         ),
-        "(all_items,one_response)": resample_items_and_responses_factory(
-            all_items, sample_ground_responses(1)
+        "(all_items,one_response)": select_items_and_responses_factory(
+            self.item_samplers.all_items,
+            self.response_samplers.take_first_response
         ),
-        "(all_items,all_responses)": resample_items_and_responses_factory(
-            all_items, noop
+        "(all_items,all_responses)": select_items_and_responses_factory(
+            self.item_samplers.all_items,
+            self.response_samplers.take_all_responses
         ),
         "(bootstrap_items,bootstrap_responses)": (
-            resample_items_and_responses_factory(
-                bootstrap_items, sample_ground_responses(self.k_responses)
+            select_items_and_responses_factory(
+                self.item_samplers.resample_items,
+                self.response_samplers.sample_responses
             )
         ),
-        "(bootstrap_items,one_response)": resample_items_and_responses_factory(
-            bootstrap_items, sample_ground_responses(1)
+        "(bootstrap_items,all_responses)": select_items_and_responses_factory(
+            self.item_samplers.resample_items,
+            self.response_samplers.take_all_responses
         ),
-        "(bootstrap_items,all_responses)": resample_items_and_responses_factory(
-            bootstrap_items, noop
+        "(bootstrap_items,one_response)": select_items_and_responses_factory(
+            self.item_samplers.resample_items,
+            self.response_samplers.sample_one_response
         ),
         "(bootstrap_items,first_response)": (
-            resample_items_and_responses_factory(
-                bootstrap_items, first_response
+            select_items_and_responses_factory(
+                self.item_samplers.resample_items,
+                self.response_samplers.take_first_response
             )
         ),
     }

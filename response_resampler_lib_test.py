@@ -20,6 +20,7 @@ from unittest import mock
 
 from absl.testing import absltest
 import numpy as np
+import datatypes
 import response_resampler_lib as resampler_lib
 import parameterized_sample_lib as psample
 import pandas as pd
@@ -31,6 +32,8 @@ class ResponseResamplerLibTest(absltest.TestCase):
     """This method will be run before each of the test methods in the class."""
     super().setUp()
     # Create a response data file.
+    self.n_items = 10
+    self.k_responses = 5
     self.out_dir = self.create_tempdir()
     self.datasets = psample.generate_response_tables(10, 5, 0.3, 2)
     self.output_file_path = os.path.join(self.out_dir, 'output.csv')
@@ -42,17 +45,16 @@ class ResponseResamplerLibTest(absltest.TestCase):
 
   def create_experiments(self, line: int = -1):
     # Create an experiment manager and an experiment.
-    k_responses = 5
     self.experiments_manager = resampler_lib.ExperimentsManager(
         self.datasets,
         self.config_filename,
         line,
-        k_responses,
+        self.k_responses,
         self.output_file_path,
     )
 
     config_row = self.experiments_manager.e_grid.iloc[0]
-    self.experiment = resampler_lib.Experiment(config_row, k_responses)
+    self.experiment = resampler_lib.Experiment(config_row, self.k_responses)
     self.metrc_func = self.experiment.metric
 
   def write_config_file(self, metric_spec: str) -> None:
@@ -122,6 +124,85 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.write_config_file(metric_spec='mean_of_emds(6)')
     with self.assertRaises(ValueError):
       self.create_experiments()
+
+  # Test that resetting to same seed value yields same sample.
+  def test_samplers_seeding(self):
+    item_samplers = resampler_lib.ItemSamplers(seed=19)
+    response_samplers = resampler_lib.ResponseSamplers(seed=19)
+
+    human_data, machine1_data, machine2_data = np.array(
+        [[0.1, 0.6], [0, 0.1], [0.7, 0.7]])
+    response_data = datatypes.ResponseData(
+        human_data, machine1_data, machine2_data)
+
+    item_sample = item_samplers.resample_items(response_data)
+    item_samplers.reset_seed(seed=19)
+    new_item_sample = item_samplers.resample_items(response_data)
+    self.assertDictEqual(item_sample.to_dict(), new_item_sample.to_dict())
+
+    human_data = np.ndarray(shape=[1, human_data.shape[0]], buffer=human_data)
+    response_sample = response_samplers.resample_responses(
+        n_items=human_data.shape[0], k_responses=human_data.shape[1],
+        domain_size=human_data.shape[1], matrix=human_data)
+    response_samplers.reset_seed(seed=19)
+    new_response_sample = response_samplers.resample_responses(
+        n_items=human_data.shape[0], k_responses=human_data.shape[1],
+        domain_size=human_data.shape[1], matrix=human_data)
+    self.assertListEqual(response_sample.flatten().tolist(),
+                         new_response_sample.flatten().tolist())
+
+  def test_item_samplers(self):
+    item_samplers = resampler_lib.ItemSamplers(seed=19)
+    human_data, machine1_data, machine2_data = np.array(
+        [[0.1, 0.6], [0, 0.1], [0.7, 0.7]])
+    response_data = datatypes.ResponseData(
+        human_data, machine1_data, machine2_data)
+
+    resample = item_samplers.resample_items(response_data)
+    self.assertEqual(resample.gold.shape[0], human_data.shape[0])
+
+  def test_response_sampler_output_shape(self):
+    response_samplers = resampler_lib.ResponseSamplers(seed=19)
+    data_array = np.arange(self.n_items * self.k_responses)
+    data_matrix = np.reshape(data_array,
+                             newshape=[self.n_items, self.k_responses])
+
+    for response_sampler in [
+        response_samplers.resample_responses,
+        response_samplers.sample_responses,
+        response_samplers.take_all_responses,
+        response_samplers.sample_all_responses,
+    ]:
+      resample = response_sampler(
+          n_items=data_matrix.shape[0], k_responses=data_matrix.shape[1],
+          domain_size=data_matrix.shape[1], matrix=data_matrix)
+      self.assertEqual(resample.shape, data_matrix.shape)
+
+    for response_sampler in [
+        response_samplers.take_first_response,
+        response_samplers.sample_one_response,
+    ]:
+      resample = response_sampler(
+          n_items=data_matrix.shape[0], k_responses=data_matrix.shape[1],
+          domain_size=data_matrix.shape[1], matrix=data_matrix)
+      self.assertEqual(resample.shape, (data_matrix.shape[0], 1))
+
+  def test_response_sampling_without_replacement(self):
+    response_samplers = resampler_lib.ResponseSamplers(seed=19)
+    data_array = np.arange(self.n_items * self.k_responses)
+    data_matrix = np.reshape(data_array,
+                             newshape=[self.n_items, self.k_responses])
+
+    for response_sampler in [
+        response_samplers.sample_responses,
+        response_samplers.take_all_responses,
+        response_samplers.sample_all_responses,
+    ]:
+      output = response_sampler(
+          n_items=data_matrix.shape[0], k_responses=data_matrix.shape[1],
+          domain_size=data_matrix.shape[1], matrix=data_matrix)
+      sorted_output = np.sort(output, axis=1)
+      self.assertTrue(np.array_equal(sorted_output, data_matrix))
 
 if __name__ == '__main__':
   absltest.main()
