@@ -302,7 +302,7 @@ def generate_response_tables(
 ) -> datatypes.ResponseSets:
   """Generates a collection of human and machine responses.
 
-  Generates tables ("sets"), for null and alternate hypotheses
+  Generates tables ("sets"), for null and alternative hypotheses
 
   Args:
     n_items: Number of items per set.

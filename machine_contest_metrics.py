@@ -561,10 +561,10 @@ def calculate_p_value(
     s_alt: np.ndarray,
     two_sided_test: bool = True,
 ) -> float:
-  """Compute the p-value for null and alternative hypothesis results.
+  """Compute the p-value given null and alternative hypothesis results.
 
-  Provides a one-sided test with the assumption that alt distribution is biased
-  greater than the null distribution.
+  Provides either a one-sided test, with the assumption that alt distribution is
+  biased greater than the null distribution, or a two-sided test.
 
   Args:
     s_null: A sequence of null hypothesis results.
@@ -606,7 +606,7 @@ def calculate_p_value(
     p_count += (len(s_alt) - j - 1) * (len(s_null) - 1)
 
   p_value = p_count / (len(s_null) * len(s_alt))
-  return p_value
+  return 2 * p_value if two_sided_test else p_value
 
 def mean_and_confidence_bounds(
     scores: np.ndarray,
