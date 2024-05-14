@@ -286,7 +286,7 @@ def toxicity_distr_gen(n: int, distortion: float) -> Tuple[
       h_dist=likert_norm_dist,
   )
 
-def generate_response_tables(
+def simulate_response_tables(
     n_items: int = 1000,
     k_responses: int = 5,
     distortion: float = 0.3,
@@ -321,7 +321,7 @@ def generate_response_tables(
   responses_alt = []
   responses_null = []
 
-  for _ in range(num_samples):
+  for _ in range(num_samples + 1):
     # Obtain response tables and results
     hum_h_distrs, mach1_h_distrs, mach2_h_distrs = alt_distr_generator(
         n_items, distortion

@@ -35,7 +35,7 @@ class ResponseResamplerLibTest(absltest.TestCase):
     self.n_items = 10
     self.k_responses = 5
     self.out_dir = self.create_tempdir()
-    self.datasets = psample.generate_response_tables(10, 5, 0.3, 2)
+    self.datasets = psample.simulate_response_tables(10, 5, 0.3, 2)
     self.output_file_path = os.path.join(self.out_dir, 'output.csv')
 
     # Create the experiment config file.

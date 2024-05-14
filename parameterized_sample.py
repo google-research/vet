@@ -15,14 +15,14 @@ limitations under the License.
 Code support for parameterized stochastic models for probabilistic response.
 
 Use of this binary is based on two functions that work together. The main
-function is generate_response_tables. It creates a collection of triple-wise
+function is simulate_response_tables. It creates a collection of triple-wise
 samples of responses for the three stochastic models. The caller specifies the
 number of samples, the number of  items in each sample, and the number of
 responses per item that each of the three machines provides.
 
-The second function is passed as an argument to generate_response_tables.
+The second function is passed as an argument to simulate_response_tables.
 It generates for each item and each of the three responses (human and machines
-1 and 2) a probability distribution function, which generate_response tables
+1 and 2) a probability distribution function, which simulate_response_tables
 uses to generate the samples.
 
 Example usage:
@@ -85,7 +85,7 @@ def main(argv: Sequence[str]) -> None:
     np.random.seed(_RANDOM_SEED.value)
 
   generation_start_time = datetime.datetime.now()
-  response_sets = psample.generate_response_tables(
+  response_sets = psample.simulate_response_tables(
       _N_ITEMS.value,
       _K_RESPONSES.value,
       _DISTORTION.value,

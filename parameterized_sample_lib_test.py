@@ -92,7 +92,7 @@ class ParameterizedSampleTest(absltest.TestCase):
       for response in item:
         self.assertEqual(response, 2)
 
-  def test_generate_response_tables(self):
+  def test_simulate_response_tables(self):
     """Should generate 2 sets of 2-dimensional tables."""
 
     def alt_distr_gen(n, distortion):
@@ -100,7 +100,7 @@ class ParameterizedSampleTest(absltest.TestCase):
           (lambda: 0.5), (lambda: 0), n, alt_distortion=distortion
       )
 
-    samples = psample.generate_response_tables(100, 5, 0.3, 100, alt_distr_gen)
+    samples = psample.simulate_response_tables(100, 5, 0.3, 100, alt_distr_gen)
     for sample_set in samples.alt_data_list:
       for item in sample_set.gold:
         for response in item:

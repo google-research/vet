@@ -77,19 +77,19 @@ _RANDOM_SEED = flags.DEFINE_integer(
     "When set, it generates the data in deterministically across runs.",
 )
 
-def generate_toxicity_data_responses(
+def generate_empirical_toxicity_data_responses(
     file: str, response_sets: datatypes.ResponseSets
 ) -> datatypes.ResponseSets:
-  """Generate ground truth data that is consistent with toxicity dataset.
+  """Generate data that is consistent with the Toxicity dataset.
 
   This is used only to generate data based this dataset:
   https://data.esrg.stanford.edu/study/toxicity-perspectives
 
-  This function is needed because, unlike data that is generated purely
-  synthetically, here we have actual data that we should run bootstrapping on.
-  The responses that we bootstrap from are always the first set of responses
-  generated, and so this function replaces the gold sets of synthetic responses
-  with the real data.
+  This function is needed because, unlike simulated data that is purely
+  synthetic, here we have actual data that we should run bootstrapping on.
+  The responses that we run non-parametric bootstraping on are always the first
+  sample (at index 0), and so this function replaces the model and gold sets of
+  simulated responses with this more empirical data.
 
   Args:
     file: The path and name of the datafile (if downloaded from the website).
@@ -126,26 +126,25 @@ def generate_toxicity_data_responses(
       for mean, dev in zip(machine2_means, human_stdev)
   ]
 
-  for t in range(len(response_sets.alt_data_list)):
-    _, preds1_alt, preds2_alt = psample.sample_h(
-        mac1_h_distrs, mac1_h_distrs, mac2_h_distrs, resps_per_item=5
-    )
+  _, preds1_alt, preds2_alt = psample.sample_h(
+      mac1_h_distrs, mac1_h_distrs, mac2_h_distrs, resps_per_item=5
+  )
 
-    mach_null_h_distrs = [
-        psample.null_hypothesis_generator(mach1_h_distr, mach2_h_distr)
-        for mach1_h_distr, mach2_h_distr in zip(mac1_h_distrs, mac2_h_distrs)
-    ]
+  mach_null_h_distrs = [
+      psample.null_hypothesis_generator(mach1_h_distr, mach2_h_distr)
+      for mach1_h_distr, mach2_h_distr in zip(mac1_h_distrs, mac2_h_distrs)
+  ]
 
-    _, preds1_null, preds2_null = psample.sample_h(
-        mac1_h_distrs, mach_null_h_distrs, mach_null_h_distrs, resps_per_item=5
-    )
+  _, preds1_null, preds2_null = psample.sample_h(
+      mac1_h_distrs, mach_null_h_distrs, mach_null_h_distrs, resps_per_item=5
+  )
 
-    response_sets.alt_data_list[t].gold = toxicity_data
-    response_sets.alt_data_list[t].preds1 = preds1_alt
-    response_sets.alt_data_list[t].preds2 = preds2_alt
-    response_sets.null_data_list[t].gold = toxicity_data
-    response_sets.null_data_list[t].preds1 = preds1_null
-    response_sets.null_data_list[t].preds2 = preds2_null
+  response_sets.alt_data_list[0].gold = toxicity_data
+  response_sets.alt_data_list[0].preds1 = preds1_alt
+  response_sets.alt_data_list[0].preds2 = preds2_alt
+  response_sets.null_data_list[0].gold = toxicity_data
+  response_sets.null_data_list[0].preds1 = preds1_null
+  response_sets.null_data_list[0].preds2 = preds2_null
   return response_sets
 
 def main(argv: Sequence[str]) -> None:
@@ -161,7 +160,7 @@ def main(argv: Sequence[str]) -> None:
     np.random.seed(_RANDOM_SEED.value)
 
   generation_start_time = datetime.datetime.now()
-  response_sets = psample.generate_response_tables(
+  response_sets = psample.simulate_response_tables(
       _N_ITEMS.value,
       _K_RESPONSES.value,
       _DISTORTION.value,
@@ -171,19 +170,14 @@ def main(argv: Sequence[str]) -> None:
   elapsed_time = datetime.datetime.now() - generation_start_time
   logging.info("Regular data generation time=%f", elapsed_time.total_seconds())
 
-  # For the toxicity data, in addition to the call to generate_response_tables
-  # above, because unlike data that is generated purely synthetically, here we
-  # have actual data that we should run bootstrapping on. The responses that we
-  # bootstrap from are always the first set of responses generated, and so
-  # generate_toxicity_data_responses replaces the first set of synthetically
-  # generated responses with the real data.
-  #
-  # Note that even though the remaining response sets are generated
-  # synthetically, we use a special generator tailored to the dataset to
-  # generate them.
+  # For the Toxicity data, in addition to the call to simulate_response_tables
+  # above for simulated data, here we have actual data that we should run
+  # bootstrapping on. The responses that we bootstrap from are always the first
+  # set of responses generated (at index 0), and so we now replace the first
+  # set of synthetically generated responses with the real data.
   toxicity_start_time = datetime.datetime.now()
-  response_sets = generate_toxicity_data_responses(input_filename,
-                                                   response_sets)
+  response_sets = generate_empirical_toxicity_data_responses(input_filename,
+                                                             response_sets)
   elapsed_time = datetime.datetime.now() - toxicity_start_time
   logging.info("Toxicity data generation time=%f", elapsed_time.total_seconds())
 

@@ -665,7 +665,7 @@ class Experiment:
     self._get_nonparametric_bootstrap_results(alt_samples[0])
 
     # Compute "ground-truth" p-value and other experiment stats.
-    self._get_parametric_bootstrap_results(alt_samples, null_samples)
+    self._get_parametric_bootstrap_results(alt_samples[1:], null_samples[1:])
 
     return self._aggregate_experiment_results()
 
