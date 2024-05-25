@@ -340,7 +340,7 @@ class MachineContestMetricsTest(absltest.TestCase):
     s_null = np.random.permutation(10)  # order doesn't matter
     s_alt = np.repeat(4.5, 10)
     p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
-    self.assertAlmostEqual(p_value, 1.0, places=2)
+    self.assertAlmostEqual(p_value, 0.5, places=2)
 
   def test_calculate_p_value_null_all_greater(self):
     """Test the case where `s_alt` is no better than `s_null` for all scores."""
@@ -359,11 +359,44 @@ class MachineContestMetricsTest(absltest.TestCase):
     self.assertAlmostEqual(p_value, 0.0, places=2)
 
   def test_calculate_p_value_same_items(self):
-    """Test when `s_null` and `s_alt` have the same items."""
+    """Test when `s_null` and `s_alt` have the same set of (unequal) scores."""
     s_null = np.random.permutation(10)
     s_alt = np.random.permutation(10)
     p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
-    self.assertAlmostEqual(p_value, 0.9, places=2)
+    self.assertAlmostEqual(p_value, 0.55, places=2)
+
+  def test_calculate_p_value_same_items_all_equal(self):
+    """Test when `s_null` and `s_alt` have equal-valued items."""
+    s_null = np.repeat(0.5, 10)
+    s_alt = np.repeat(0.5, 10)
+    p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
+    self.assertAlmostEqual(p_value, 1.0, places=2)
+
+  def test_calculate_p_value_with_ties(self):
+    s_null = np.concatenate([np.zeros(50), np.ones(50)])
+    s_alt = np.concatenate([np.zeros(60), np.ones(40)])
+    p_value1 = machine_contest_metrics.calculate_p_value(
+        s_null, s_alt, two_sided_test=False)
+    p_value2 = machine_contest_metrics.calculate_p_value(
+        s_null, s_alt, two_sided_test=True)
+    self.assertAlmostEqual(p_value1, 0.8, places=2)
+    self.assertAlmostEqual(p_value2, 0.7, places=2)
+
+  def test_calculate_p_value_null_outlier(self):
+    s_null = np.asarray([100, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+    s_alt = np.repeat(10, 10)
+    p_value = machine_contest_metrics.calculate_p_value(s_null, s_alt)
+    self.assertAlmostEqual(p_value, 0.1, places=2)
+
+  def test_calculate_p_value_alt_outlier(self):
+    s_null = np.repeat(10, 10)
+    s_alt = np.asarray([100, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+    p_value1 = machine_contest_metrics.calculate_p_value(
+        s_null, s_alt, two_sided_test=False)
+    p_value2 = machine_contest_metrics.calculate_p_value(
+        s_null, s_alt, two_sided_test=True)
+    self.assertAlmostEqual(p_value1, 0.9, places=2)
+    self.assertAlmostEqual(p_value2, 0.1, places=2)
 
   def test_mean_confidence_bounds(self):
     scores = np.arange(1000)

@@ -575,38 +575,40 @@ def calculate_p_value(
   Returns:
     The p-value for the results.
   """
-  # Preprocessing for two-sided hypothesis test (ie, M1 > M2 OR M2 > M1).
+  # Preprocessing for two-sided hypothesis test (ie, M1 >> M2 OR M2 >> M1):
+  # use the side having fewer scores in s_null > s_alt (hence, smaller p-value).
   if two_sided_test and (np.median(s_null) > np.median(s_alt)):
     s_null, s_alt = -s_null, -s_alt
 
   s_null = sorted(s_null, reverse=True)
   s_alt = sorted(s_alt, reverse=True)
 
-  # If all null hypothesis results are smaller than all alternative hypothesis
-  # results then the p-value is 0 and, hence, H_0 is rejected.
-  if s_null[0] < s_alt[-1]:
-    return 0.0
-  # If all null hypothesis results are larger than all alternative hypothesis
-  # results then the p-value is 1 and, hence, H_0 clearly cannot be rejected.
-  elif s_alt[0] < s_null[-1]:
+  # If all null hypothesis scores are as large as all alternative hypothesis
+  # scores then the p-value is 1 and, hence, H_0 is rejected.
+  if s_null[-1] >= s_alt[0]:
     return 1.0
+  # If all alt hypothesis scores are greater than all null hypothesis scores
+  # then the p-value is 0 and, hence, H_0 clearly cannot be rejected.
+  elif s_alt[-1] > s_null[0]:
+    return 0.0
 
+  # For each s_null value, count all s_alt values that are smaller or equal.
   p_count = 0  # numerator of p-value
   i = j = 0
   while i < len(s_null) and j < len(s_alt):
-    if s_null[i] >= s_alt[j]:
-      i += 1
-    else:
-      p_count += i
+    if s_null[i] < s_alt[j]:
+      # Null test statistic not as large as alt so try smaller alt score.
       j += 1
+    else:
+      # Null test statistic is at least as large as alt so count entire suffix.
+      p_count += len(s_alt) - j
+      i += 1
 
-  # There are more s_alt items bigger than the last one in s_null.
-  # They should all be counted.
-  if j < len(s_alt) - 1 and s_alt[j] > s_null[-1]:
-    p_count += (len(s_alt) - j - 1) * (len(s_null) - 1)
+  # If i == len(s_null) then there are no more null values to count for.
+  # If j == len(s_alt) then there are no alt values left to count.
 
   p_value = p_count / (len(s_null) * len(s_alt))
-  return 2 * p_value if two_sided_test else p_value
+  return p_value
 
 def mean_and_confidence_bounds(
     scores: np.ndarray,
