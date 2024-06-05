@@ -379,7 +379,7 @@ def amazon_distr_gen(
   """
   return gen_alt_h_distrs_norm(
       lambda: norm_bounded_sample(0.552121, 0.032093, (0,1)),
-      lambda: norm_bounded_sample(0.318177, 0.018281, 0.409315, (0,1)),
+      lambda: norm_bounded_sample(0.318177, 0.018281, (0,1)),
       n,
       alt_distortion=distortion,
       h_dist=likert_norm_dist,

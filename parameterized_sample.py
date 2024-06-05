@@ -75,6 +75,12 @@ _RANDOM_SEED = flags.DEFINE_integer(
     "When set, it generates the data in deterministically across runs.",
 )
 
+_PREFIX = flags.DEFINE_string(
+    "prefix",
+    "responses_simulated_distr",
+    "create unique prefix for output file",
+)
+
 # for how to use this library.
 def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
@@ -98,7 +104,7 @@ def main(argv: Sequence[str]) -> None:
   file_extension = "pkl" if _USE_PICKLE.value else "json"
   output_filename = os.path.join(
       _EXP_DIR.value,
-      f"responses_simulated_distr_dist={_DISTORTION.value}_gen_N="
+      f"{_PREFIX.value}_dist={_DISTORTION.value}_gen_N="
       f"{_N_ITEMS.value}_K={_K_RESPONSES.value}"
       f"_num_samples={_NUM_SAMPLES.value}.{file_extension}",
   )

@@ -26,15 +26,7 @@
 #
 # Your job script goes below this line.
 #
-#
-# alt_distr_gen
-# toxicity_distr_gen
-# amazon_distr_gen
-# hs_brexit_distr_gen
-# armis_distr_gen
-# convabuse_distr_gen
-# md_agreement_distr_gen
-
 conda activate vet
-python3 /home/cmhvcs/vet/parameterized_sample.py --generator=armis_distr_gen --n_items=$1 --k_responses=$2 --num_samples=1000 --distortion=$3 --prefix=armis --exp_dir=
+python parameterized_sample.py --generator $4 --n_items=$2 --k_responses=$3 --num_samples=1000 --distortion=$1 --exp_dir=
+python response_resampler.py --config_file=acl2024_config.csv --n_items=$2 --k_responses=$3 --exp_dir= --input_response_file=responses_simulated_distr_dist=$1_gen_N=$2_K=$3_num_samples=1000.json
 
